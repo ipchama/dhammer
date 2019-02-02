@@ -114,6 +114,8 @@ func (h *HandlerV4) Run() {
 		outDhcpLayer.RelayAgentIP = h.options.RelaySourceIP
 	}
 
+	goPacketSerializeOpts := gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}
+
 	ok := true
 
 	for {
@@ -140,11 +142,10 @@ func (h *HandlerV4) Run() {
 			if *h.options.Handshake {
 
 				buf := gopacket.NewSerializeBuffer()
-				opts := gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}
 
 				outDhcpLayer.Xid = dhcpReply.Xid
 
-				outDhcpLayer.Options = make(layers.DHCPOptions, 4)
+				outDhcpLayer.Options = make(layers.DHCPOptions, 3)
 
 				outDhcpLayer.Options[0] = layers.NewDHCPOption(layers.DHCPOptMessageType, []byte{byte(layers.DHCPMsgTypeRequest)})
 				outDhcpLayer.Options[1] = layers.NewDHCPOption(layers.DHCPOptRequestIP, dhcpReply.YourClientIP)
@@ -154,7 +155,7 @@ func (h *HandlerV4) Run() {
 
 				udpLayer.SetNetworkLayerForChecksum(ipLayer)
 
-				gopacket.SerializeLayers(buf, opts,
+				gopacket.SerializeLayers(buf, goPacketSerializeOpts,
 					ethernetLayer,
 					ipLayer,
 					udpLayer,
@@ -166,7 +167,68 @@ func (h *HandlerV4) Run() {
 				}
 			}
 		} else if dhcpReply.Options[0].Data[0] == (byte)(layers.DHCPMsgTypeAck) {
+
 			h.addStat(stats.AckReceivedStat)
+
+			if *h.options.Handshake && *h.options.DhcpRelease {
+
+				buf := gopacket.NewSerializeBuffer()
+
+				outDhcpLayer.Xid = dhcpReply.Xid
+
+				/* We have to unicast DHCPRELEASE - https://tools.ietf.org/html/rfc2131#section-4.4.4 */
+
+				dhcpReplyEtherFrame := msg.Packet.Layer(layers.LayerTypeEthernet).(*layers.Ethernet)
+
+				/*
+					The "next server" value of the DHCP reply might not actually be the server issuing the IP.
+					Not seeing another sure option for grabbing the DHCP server IP aside from yanking it out of the IP header.
+				*/
+
+				dhcpReplyIpHeader := msg.Packet.Layer(layers.LayerTypeIPv4).(*layers.IPv4)
+
+				releaseEthernetLayer := &layers.Ethernet{
+					DstMAC:       dhcpReplyEtherFrame.SrcMAC,
+					SrcMAC:       h.iface.HardwareAddr,
+					EthernetType: layers.EthernetTypeIPv4,
+					Length:       0,
+				}
+
+				releaseIpLayer := &layers.IPv4{
+					Version:  4, // IPv4
+					TTL:      64,
+					Protocol: 17, // UDP
+					SrcIP:    dhcpReply.YourClientIP,
+					DstIP:    dhcpReplyIpHeader.SrcIP,
+				}
+
+				previousClientIP := outDhcpLayer.ClientIP
+				outDhcpLayer.ClientIP = dhcpReply.YourClientIP
+
+				outDhcpLayer.Options = make(layers.DHCPOptions, 3)
+
+				outDhcpLayer.Options[0] = layers.NewDHCPOption(layers.DHCPOptMessageType, []byte{byte(layers.DHCPMsgTypeRelease)})
+				outDhcpLayer.Options[1] = layers.NewDHCPOption(layers.DHCPOptEnd, []byte{})
+
+				outDhcpLayer.ClientHWAddr = dhcpReply.ClientHWAddr
+
+				udpLayer.SetNetworkLayerForChecksum(ipLayer)
+
+				gopacket.SerializeLayers(buf, goPacketSerializeOpts,
+					releaseEthernetLayer,
+					releaseIpLayer,
+					udpLayer,
+					outDhcpLayer,
+				)
+
+				// Reset ClientIP to what it was.  It might have been an IP or it might have been 0.0.0.0, depending what options were used.
+				outDhcpLayer.ClientIP = previousClientIP
+
+				if h.sendPayload(buf.Bytes()) {
+					h.addStat(stats.ReleaseSentStat)
+				}
+			}
+
 		} else if dhcpReply.Options[0].Data[0] == (byte)(layers.DHCPMsgTypeNak) {
 			h.addStat(stats.NakReceivedStat)
 		}

@@ -15,7 +15,7 @@ import (
 	TODO:
 		Review MAC generation.
 		Factory for generator/handler/stats based on future ipv option.
-		Info/release/decline options.
+		Info/decline options.
 		Options and functionality for "binding" IPs and ARPing.
 		Option to automatically select gateway MAC from default route gateway.
 */
