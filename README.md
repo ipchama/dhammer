@@ -65,7 +65,7 @@ Usage of ./dhammer:
   -relay-target-server-ip string
     	Target/Destination IP for relayed requests.  relay-source-ip AND relay-target-server-ip must be set for relay mode.
   -release
-    	Release leases - NOT YET IMPLEMENTED
+    	Release leases.
   -rps int
     	Max number of packets per second. 0 == unlimited.
   -stats-rate int
