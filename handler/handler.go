@@ -8,12 +8,18 @@ import (
 	"github.com/ipchama/dhammer/message"
 	"github.com/ipchama/dhammer/stats"
 	"net"
-	"runtime"
+	"time"
 )
+
+type Lease struct {
+	Packet   gopacket.Packet
+	Acquired time.Time
+}
 
 type HandlerV4 struct {
 	options      *config.Options
 	iface        *net.Interface
+	acquiredIPs  map[string]Lease
 	addLog       func(string) bool
 	addError     func(error) bool
 	sendPayload  func([]byte) bool
@@ -27,6 +33,7 @@ func NewV4(o *config.Options, iface *net.Interface, logFunc func(string) bool, e
 	h := HandlerV4{
 		options:      o,
 		iface:        iface,
+		acquiredIPs:  make(map[string]Lease),
 		addLog:       logFunc,
 		addError:     errFunc,
 		sendPayload:  payloadFunc,
@@ -125,8 +132,10 @@ func (h *HandlerV4) Run() {
 			return
 		}
 
-		if msg.Packet.Layer(layers.LayerTypeDHCPv4) == nil {
-			runtime.Gosched()
+		if *h.options.Arp && msg.Packet.Layer(layers.LayerTypeARP) != nil {
+			h.handleARP(msg)
+			continue
+		} else if msg.Packet.Layer(layers.LayerTypeDHCPv4) == nil {
 			continue
 		}
 
@@ -170,7 +179,14 @@ func (h *HandlerV4) Run() {
 
 			h.addStat(stats.AckReceivedStat)
 
-			if *h.options.Handshake && *h.options.DhcpRelease {
+			if *h.options.Arp {
+				h.acquiredIPs[dhcpReply.YourClientIP.String()] = Lease{
+					Packet:   msg.Packet,
+					Acquired: time.Now(),
+				}
+			}
+
+			if *h.options.DhcpRelease {
 
 				buf := gopacket.NewSerializeBuffer()
 
@@ -231,6 +247,45 @@ func (h *HandlerV4) Run() {
 
 		} else if dhcpReply.Options[0].Data[0] == (byte)(layers.DHCPMsgTypeNak) {
 			h.addStat(stats.NakReceivedStat)
+		}
+	}
+}
+
+func (h *HandlerV4) handleARP(msg message.Message) {
+	arpRequest := msg.Packet.Layer(layers.LayerTypeARP).(*layers.ARP)
+
+	if arpRequest.Operation == layers.ARPRequest {
+		if _, found := h.acquiredIPs[net.IP(arpRequest.DstProtAddress).String()]; found {
+
+			goPacketSerializeOpts := gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}
+
+			ethernetLayer := &layers.Ethernet{
+				DstMAC:       net.HardwareAddr(arpRequest.SourceHwAddress),
+				SrcMAC:       h.iface.HardwareAddr,
+				EthernetType: layers.EthernetTypeARP,
+				Length:       0,
+			}
+
+			arpLayer := &layers.ARP{
+				Operation:         layers.ARPReply,
+				DstHwAddress:      arpRequest.SourceHwAddress,
+				DstProtAddress:    arpRequest.SourceProtAddress,
+				HwAddressSize:     arpRequest.HwAddressSize,
+				AddrType:          arpRequest.AddrType,
+				ProtAddressSize:   arpRequest.ProtAddressSize,
+				Protocol:          arpRequest.Protocol,
+				SourceHwAddress:   h.iface.HardwareAddr,
+				SourceProtAddress: arpRequest.DstProtAddress,
+			}
+
+			buf := gopacket.NewSerializeBuffer()
+
+			gopacket.SerializeLayers(buf, goPacketSerializeOpts,
+				ethernetLayer,
+				arpLayer,
+			)
+
+			h.sendPayload(buf.Bytes())
 		}
 	}
 }

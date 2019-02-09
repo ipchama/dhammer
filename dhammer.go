@@ -26,6 +26,8 @@ func main() {
 
 	options.StatsRate = flag.Int("stats-rate", 5, "How frequently to display stats (seconds).")
 
+	options.Arp = flag.Bool("arp", false, "Respond to arp requests for assigned IPs.")
+
 	relayIP := flag.String("relay-source-ip", "", "Source IP for relayed requests.  relay-source-ip AND relay-target-server-ip must be set for relay mode.")
 	targetServerIP := flag.String("relay-target-server-ip", "", "Target/Destination IP for relayed requests.  relay-source-ip AND relay-target-server-ip must be set for relay mode.")
 
