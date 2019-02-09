@@ -208,6 +208,8 @@ func (h *HandlerV4) Run() {
 					}
 
 					if *h.options.Bind {
+
+						// Need to fix the CIDR here...
 						if addr, err := netlink.ParseAddr(ipStr + "/32"); err != nil {
 							h.addError(err)
 						} else if err = netlink.AddrAdd(h.link, addr); err != nil {
