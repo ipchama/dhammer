@@ -27,6 +27,9 @@ type Options struct {
 	DhcpBroadcast     *bool
 	DhcpRelease       *bool
 
+	Arp  *bool
+	Bind *bool
+
 	DhcpRelay           bool
 	RelaySourceIP       net.IP
 	RelayTargetServerIP net.IP

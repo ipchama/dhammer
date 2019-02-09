@@ -10,6 +10,8 @@ Dhammer is a stress-tester for DHCP servers.  It currently only supports DHCPv4,
 
 Dhammer can act as a "local" DHCP client broadcasting packets, or it can simulate a DHCP relay, allowing you to test DHCP servers outside of your local network and also to avoid any potential broadcast-storm safeguards your router might have.
 
+It's also possible to have dhammer bind any assigned IPs to the loopback and handle ARP requests.
+
 ## Getting Started
 
 Just download, compile, and run.
@@ -40,8 +42,11 @@ To use the relay, particularly if you'll be attempting to test a server across t
 Dhammer uses very raw sockets to do its job, so `CAP_NET_ADMIN` and `CAP_NET_RAW` are needed at the very least.  I.e., just `sudo` and get moving.
 
 ```
-./dhammer --help
 Usage of ./dhammer:
+  -arp
+    	Respond to arp requests for assigned IPs.
+  -bind
+    	Bind acquired IPs to the loopback device.  Combined with the --arp option, this will result in fully function IPs.
   -dhcp-broadcast
     	Set the broadcast bit. (default true)
   -dhcp-option value
@@ -65,11 +70,25 @@ Usage of ./dhammer:
   -relay-target-server-ip string
     	Target/Destination IP for relayed requests.  relay-source-ip AND relay-target-server-ip must be set for relay mode.
   -release
-    	Release leases.
+    	Release leases
   -rps int
     	Max number of packets per second. 0 == unlimited.
   -stats-rate int
     	How frequently to display stats (seconds). (default 5)
+```
+Stats example:
+```
+2019/02/09 17:07:19 INFO: 
+[STATS]
+DiscoverSent 	 Total: 11 Rate: 2.2/sec
+InfoSent 	 Total: 0 Rate: 0/sec
+RequestSent 	 Total: 10 Rate: 2/sec
+DeclineSent 	 Total: 0 Rate: 0/sec
+ReleaseSent 	 Total: 10 Rate: 2/sec
+OfferReceived 	 Total: 10 Rate: 2/sec
+AckReceived 	 Total: 10 Rate: 2/sec
+NakReceived 	 Total: 0 Rate: 0/sec
+InfoReceived 	 Total: 0 Rate: 0/sec
 ```
 ## Contributing
 

@@ -18,13 +18,16 @@ func main() {
 	options.DhcpInfo = flag.Bool("dhcpinfo", false, "Blast DHCPINFO packets, but don't complete the handshake. NOT YET IMPLEMENTED.")
 	options.DhcpBroadcast = flag.Bool("dhcp-broadcast", true, "Set the broadcast bit.")
 	options.EthernetBroadcast = flag.Bool("ethernet-broadcast", true, "Use ethernet broadcasting.")
-	options.DhcpRelease = flag.Bool("release", false, "Release leases")
+	options.DhcpRelease = flag.Bool("release", false, "Release leases after acquiring them.")
 
 	options.RequestsPerSecond = flag.Int("rps", 0, "Max number of packets per second. 0 == unlimited.")
 	options.MaxLifetime = flag.Int("maxlife", 0, "How long to run. 0 == forever")
 	options.MacCount = flag.Int("mac-count", 1, "Number of unique MAC addresses to pre-generate.")
 
 	options.StatsRate = flag.Int("stats-rate", 5, "How frequently to display stats (seconds).")
+
+	options.Arp = flag.Bool("arp", false, "Respond to arp requests for assigned IPs.")
+	options.Bind = flag.Bool("bind", false, "Bind acquired IPs to the loopback device.  Combined with the --arp option, this will result in fully functioning IPs.")
 
 	relayIP := flag.String("relay-source-ip", "", "Source IP for relayed requests.  relay-source-ip AND relay-target-server-ip must be set for relay mode.")
 	targetServerIP := flag.String("relay-target-server-ip", "", "Target/Destination IP for relayed requests.  relay-source-ip AND relay-target-server-ip must be set for relay mode.")

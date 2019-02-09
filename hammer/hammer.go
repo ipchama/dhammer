@@ -70,6 +70,8 @@ func (h *Hammer) Init() error {
 
 	var err error
 
+	log.SetFlags(log.LstdFlags | log.LUTC)
+
 	h.stats = stats.NewV4(h.options, h.addLog, h.addError)
 	if err = h.stats.Init(); err != nil {
 		return err
