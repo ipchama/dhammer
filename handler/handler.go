@@ -7,19 +7,22 @@ import (
 	"github.com/ipchama/dhammer/config"
 	"github.com/ipchama/dhammer/message"
 	"github.com/ipchama/dhammer/stats"
+	"github.com/vishvananda/netlink"
 	"net"
 	"time"
 )
 
 type Lease struct {
 	Packet   gopacket.Packet
+	LinkAddr *netlink.Addr
 	Acquired time.Time
 }
 
 type HandlerV4 struct {
 	options      *config.Options
 	iface        *net.Interface
-	acquiredIPs  map[string]Lease
+	link         netlink.Link
+	acquiredIPs  map[string]*Lease
 	addLog       func(string) bool
 	addError     func(error) bool
 	sendPayload  func([]byte) bool
@@ -33,7 +36,7 @@ func NewV4(o *config.Options, iface *net.Interface, logFunc func(string) bool, e
 	h := HandlerV4{
 		options:      o,
 		iface:        iface,
-		acquiredIPs:  make(map[string]Lease),
+		acquiredIPs:  make(map[string]*Lease),
 		addLog:       logFunc,
 		addError:     errFunc,
 		sendPayload:  payloadFunc,
@@ -58,10 +61,24 @@ func (h *HandlerV4) ReceiveMessage(msg message.Message) bool {
 }
 
 func (h *HandlerV4) Init() error {
-	return nil
+
+	var err error = nil
+
+	h.link, err = netlink.LinkByName("lo")
+
+	return err
 }
 
 func (h *HandlerV4) DeInit() error {
+
+	if *h.options.Bind {
+		for _, lease := range h.acquiredIPs {
+			if err := netlink.AddrDel(h.link, lease.LinkAddr); err != nil {
+				h.addError(err)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -179,10 +196,26 @@ func (h *HandlerV4) Run() {
 
 			h.addStat(stats.AckReceivedStat)
 
-			if *h.options.Arp {
-				h.acquiredIPs[dhcpReply.YourClientIP.String()] = Lease{
-					Packet:   msg.Packet,
-					Acquired: time.Now(),
+			if *h.options.Arp || *h.options.Bind {
+
+				ipStr := dhcpReply.YourClientIP.String()
+
+				if _, found := h.acquiredIPs[ipStr]; !found {
+
+					h.acquiredIPs[ipStr] = &Lease{
+						Packet:   msg.Packet,
+						Acquired: time.Now(),
+					}
+
+					if *h.options.Bind {
+						if addr, err := netlink.ParseAddr(ipStr + "/32"); err != nil {
+							h.addError(err)
+						} else if err = netlink.AddrAdd(h.link, addr); err != nil {
+							h.addError(err)
+						} else {
+							h.acquiredIPs[ipStr].LinkAddr = addr
+						}
+					}
 				}
 			}
 
