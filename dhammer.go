@@ -18,7 +18,7 @@ func main() {
 	options.DhcpInfo = flag.Bool("dhcpinfo", false, "Blast DHCPINFO packets, but don't complete the handshake. NOT YET IMPLEMENTED.")
 	options.DhcpBroadcast = flag.Bool("dhcp-broadcast", true, "Set the broadcast bit.")
 	options.EthernetBroadcast = flag.Bool("ethernet-broadcast", true, "Use ethernet broadcasting.")
-	options.DhcpRelease = flag.Bool("release", false, "Release leases")
+	options.DhcpRelease = flag.Bool("release", false, "Release leases after acquiring them.")
 
 	options.RequestsPerSecond = flag.Int("rps", 0, "Max number of packets per second. 0 == unlimited.")
 	options.MaxLifetime = flag.Int("maxlife", 0, "How long to run. 0 == forever")
