@@ -20,6 +20,8 @@ func main() {
 	options.EthernetBroadcast = flag.Bool("ethernet-broadcast", true, "Use ethernet broadcasting.")
 	options.DhcpRelease = flag.Bool("release", false, "Release leases after acquiring them.")
 
+	options.DhcpDecline = flag.Bool("decline", false, "Decline offers.")
+
 	options.RequestsPerSecond = flag.Int("rps", 0, "Max number of packets per second. 0 == unlimited.")
 	options.MaxLifetime = flag.Int("maxlife", 0, "How long to run. 0 == forever")
 	options.MacCount = flag.Int("mac-count", 1, "Number of unique MAC addresses to pre-generate.")

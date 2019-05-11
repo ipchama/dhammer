@@ -26,6 +26,7 @@ type Options struct {
 	EthernetBroadcast *bool
 	DhcpBroadcast     *bool
 	DhcpRelease       *bool
+	DhcpDecline       *bool
 
 	Arp  *bool
 	Bind *bool

@@ -173,7 +173,12 @@ func (h *HandlerV4) Run() {
 
 				outDhcpLayer.Options = make(layers.DHCPOptions, 3)
 
-				outDhcpLayer.Options[0] = layers.NewDHCPOption(layers.DHCPOptMessageType, []byte{byte(layers.DHCPMsgTypeRequest)})
+				if *h.options.DhcpDecline {
+					outDhcpLayer.Options[0] = layers.NewDHCPOption(layers.DHCPOptMessageType, []byte{byte(layers.DHCPMsgTypeDecline)})
+				} else {
+					outDhcpLayer.Options[0] = layers.NewDHCPOption(layers.DHCPOptMessageType, []byte{byte(layers.DHCPMsgTypeRequest)})
+				}
+
 				outDhcpLayer.Options[1] = layers.NewDHCPOption(layers.DHCPOptRequestIP, dhcpReply.YourClientIP)
 				outDhcpLayer.Options[2] = layers.NewDHCPOption(layers.DHCPOptEnd, []byte{})
 
@@ -189,7 +194,11 @@ func (h *HandlerV4) Run() {
 				)
 
 				if h.sendPayload(buf.Bytes()) {
-					h.addStat(stats.RequestSentStat)
+					if *h.options.DhcpDecline {
+						h.addStat(stats.DeclineSentStat)
+					} else {
+						h.addStat(stats.RequestSentStat)
+					}
 				}
 			}
 		} else if dhcpReply.Options[0].Data[0] == (byte)(layers.DHCPMsgTypeAck) {
