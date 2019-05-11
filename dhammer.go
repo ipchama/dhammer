@@ -15,7 +15,7 @@ func main() {
 	options := &config.Options{}
 
 	options.Handshake = flag.Bool("handshake", true, "Attempt full handshakes")
-	options.DhcpInfo = flag.Bool("dhcpinfo", false, "Blast DHCPINFO packets, but don't complete the handshake. NOT YET IMPLEMENTED.")
+	options.DhcpInfo = flag.Bool("info", false, "Send DHCPINFO packets. This requires a full handshake.")
 	options.DhcpBroadcast = flag.Bool("dhcp-broadcast", true, "Set the broadcast bit.")
 	options.EthernetBroadcast = flag.Bool("ethernet-broadcast", true, "Use ethernet broadcasting.")
 	options.DhcpRelease = flag.Bool("release", false, "Release leases after acquiring them.")

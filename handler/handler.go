@@ -201,6 +201,8 @@ func (h *HandlerV4) Run() {
 					}
 				}
 			}
+		} else if dhcpReply.Options[0].Data[0] == (byte)(layers.DHCPMsgTypeInform) {
+			h.addStat(stats.InfoReceivedStat)
 		} else if dhcpReply.Options[0].Data[0] == (byte)(layers.DHCPMsgTypeAck) {
 
 			h.addStat(stats.AckReceivedStat)
@@ -230,7 +232,7 @@ func (h *HandlerV4) Run() {
 				}
 			}
 
-			if *h.options.DhcpRelease {
+			if *h.options.DhcpRelease || *h.options.DhcpInfo {
 
 				buf := gopacket.NewSerializeBuffer()
 
@@ -265,9 +267,16 @@ func (h *HandlerV4) Run() {
 				previousClientIP := outDhcpLayer.ClientIP
 				outDhcpLayer.ClientIP = dhcpReply.YourClientIP
 
-				outDhcpLayer.Options = make(layers.DHCPOptions, 3)
+				outDhcpLayer.Options = make(layers.DHCPOptions, 2)
 
-				outDhcpLayer.Options[0] = layers.NewDHCPOption(layers.DHCPOptMessageType, []byte{byte(layers.DHCPMsgTypeRelease)})
+				previousFlags := outDhcpLayer.Flags
+
+				if *h.options.DhcpInfo {
+					outDhcpLayer.Options[0] = layers.NewDHCPOption(layers.DHCPOptMessageType, []byte{byte(layers.DHCPMsgTypeInform)})
+				} else {
+					outDhcpLayer.Flags = 0x0
+					outDhcpLayer.Options[0] = layers.NewDHCPOption(layers.DHCPOptMessageType, []byte{byte(layers.DHCPMsgTypeRelease)})
+				}
 				outDhcpLayer.Options[1] = layers.NewDHCPOption(layers.DHCPOptEnd, []byte{})
 
 				outDhcpLayer.ClientHWAddr = dhcpReply.ClientHWAddr
@@ -283,9 +292,15 @@ func (h *HandlerV4) Run() {
 
 				// Reset ClientIP to what it was.  It might have been an IP or it might have been 0.0.0.0, depending what options were used.
 				outDhcpLayer.ClientIP = previousClientIP
+				// Similarly for flags.
+				outDhcpLayer.Flags = previousFlags
 
 				if h.sendPayload(buf.Bytes()) {
-					h.addStat(stats.ReleaseSentStat)
+					if *h.options.DhcpInfo {
+						h.addStat(stats.InfoSentStat)
+					} else {
+						h.addStat(stats.ReleaseSentStat)
+					}
 				}
 			}
 
