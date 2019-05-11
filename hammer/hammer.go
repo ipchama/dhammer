@@ -14,7 +14,7 @@ import (
 /*
 	TODO:
 		Factory for generator/handler/stats based on future ipv option.
-		Info/decline options.
+		Info option.
 		Option to automatically select gateway MAC from default route gateway.
 */
 
