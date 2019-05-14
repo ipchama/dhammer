@@ -19,10 +19,9 @@ const (
 	OfferReceivedStat
 	AckReceivedStat
 	NakReceivedStat
-	InfoReceivedStat
 )
 
-const StatsTypeMax int = 9
+const StatsTypeMax int = 8
 
 type Stat struct {
 	Name                string
@@ -76,7 +75,6 @@ func (s *StatsV4) Init() error {
 	s.counters[5].Name = "OfferReceived"
 	s.counters[6].Name = "AckReceived"
 	s.counters[7].Name = "NakReceived"
-	s.counters[8].Name = "InfoReceived"
 
 	return nil
 }

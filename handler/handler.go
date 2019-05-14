@@ -201,8 +201,6 @@ func (h *HandlerV4) Run() {
 					}
 				}
 			}
-		} else if dhcpReply.Options[0].Data[0] == (byte)(layers.DHCPMsgTypeInform) {
-			h.addStat(stats.InfoReceivedStat)
 		} else if dhcpReply.Options[0].Data[0] == (byte)(layers.DHCPMsgTypeAck) {
 
 			h.addStat(stats.AckReceivedStat)
