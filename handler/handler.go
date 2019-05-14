@@ -268,11 +268,11 @@ func (h *HandlerV4) Run() {
 				outDhcpLayer.Options = make(layers.DHCPOptions, 2)
 
 				previousFlags := outDhcpLayer.Flags
+				outDhcpLayer.Flags = 0x0
 
 				if *h.options.DhcpInfo {
 					outDhcpLayer.Options[0] = layers.NewDHCPOption(layers.DHCPOptMessageType, []byte{byte(layers.DHCPMsgTypeInform)})
 				} else {
-					outDhcpLayer.Flags = 0x0
 					outDhcpLayer.Options[0] = layers.NewDHCPOption(layers.DHCPOptMessageType, []byte{byte(layers.DHCPMsgTypeRelease)})
 				}
 				outDhcpLayer.Options[1] = layers.NewDHCPOption(layers.DHCPOptEnd, []byte{})
