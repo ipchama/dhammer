@@ -45,6 +45,7 @@ type Stats interface {
 type Hammer struct {
 	options      *config.Options
 	logChannel   chan string
+	statsChannel chan string
 	errorChannel chan error
 
 	handler   Handler
@@ -58,6 +59,7 @@ func New(o *config.Options) *Hammer {
 	h := Hammer{
 		options:      o,
 		logChannel:   make(chan string, 1000),
+		statsChannel: make(chan string, 1000),
 		errorChannel: make(chan error, 1000),
 	}
 
@@ -70,7 +72,7 @@ func (h *Hammer) Init() error {
 
 	log.SetFlags(log.LstdFlags | log.LUTC)
 
-	h.stats = stats.NewV4(h.options, h.addLog, h.addError)
+	h.stats = stats.NewV4(h.options, h.addStats, h.addError)
 	if err = h.stats.Init(); err != nil {
 		return err
 	}
@@ -137,7 +139,7 @@ func (h *Hammer) Run() error {
 	go func() {
 		h.stats.Run()
 		wg.Done()
-		log.Print("INFO: Stopped stats.")
+		println("INFO: Stopped stats.")
 	}()
 
 	log.Print("INFO: Starting writer.")
@@ -178,6 +180,20 @@ func (h *Hammer) Run() error {
 		log.Print("INFO: Stopped log channel reader.")
 	}()
 
+	log.Print("INFO: Starting stats channel reader.")
+	wg.Add(1)
+	go func() {
+		var msg string
+
+		for ok := true; ok; {
+			if msg, ok = <-h.statsChannel; ok {
+				log.Print(msg)
+			}
+		}
+		wg.Done()
+		log.Print("INFO: Stopped stats channel reader.")
+	}()
+
 	log.Print("INFO: Starting generator.")
 	wg.Add(1)
 	go func() {
@@ -205,6 +221,16 @@ func (h *Hammer) addError(e error) bool {
 func (h *Hammer) addLog(s string) bool {
 	select {
 	case h.logChannel <- s:
+		return true
+	default:
+	}
+
+	return false
+}
+
+func (h *Hammer) addStats(s string) bool {
+	select {
+	case h.statsChannel <- s:
 		return true
 	default:
 	}
@@ -247,4 +273,5 @@ func (h *Hammer) stop() {
 
 	close(h.errorChannel)
 	close(h.logChannel)
+	close(h.statsChannel)
 }
