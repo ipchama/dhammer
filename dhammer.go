@@ -38,6 +38,10 @@ func main() {
 
 	options.InterfaceName = flag.String("interface", "eth0", "Interface name for listening and sending.")
 	gatewayMAC := flag.String("gateway-mac", "de:ad:be:ef:f0:0d", "MAC of the gateway.")
+
+	options.ApiAddress = flag.String("api-address", "", "IP for the API server to listen on.")
+	options.ApiPort = flag.Int("api-port", 8080, "Port for the API server to listen on.")
+
 	flag.Parse()
 
 	var err error

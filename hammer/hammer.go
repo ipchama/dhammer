@@ -1,20 +1,26 @@
 package hammer
 
 import (
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"sync"
+
 	"github.com/ipchama/dhammer/config"
 	"github.com/ipchama/dhammer/generator"
 	"github.com/ipchama/dhammer/handler"
 	"github.com/ipchama/dhammer/message"
 	"github.com/ipchama/dhammer/socketeer"
 	"github.com/ipchama/dhammer/stats"
-	"log"
-	"sync"
+
+	"github.com/gorilla/handlers"
+	"github.com/julienschmidt/httprouter"
 )
 
 /*
 	TODO:
 		Factory for generator/handler/stats based on future ipv option.
-		Info option.
 		Option to automatically select gateway MAC from default route gateway.
 */
 
@@ -28,6 +34,7 @@ type Handler interface {
 
 type Generator interface {
 	Init() error
+	Update(interface{}, interface{}) error
 	Run()
 	Stop() error
 	DeInit() error
@@ -204,6 +211,8 @@ func (h *Hammer) Run() error {
 		wg.Done()
 	}()
 
+	h.startApiServer()
+
 	wg.Wait()
 
 	return nil
@@ -242,6 +251,36 @@ func (h *Hammer) Stop() {
 	// All "stop" calls should block.
 	// This will make sure no new payloads go TO the writer FROM the generator.
 	h.generator.Stop()
+}
+
+func (h *Hammer) statsHandler(response http.ResponseWriter, request *http.Request, ps httprouter.Params) {
+	fmt.Fprintf(response, h.stats.String())
+}
+
+func (h *Hammer) updateHandler(response http.ResponseWriter, request *http.Request, ps httprouter.Params) {
+	if err := h.generator.Update(ps.ByName("attribute"), ps.ByName("value")); err != nil {
+		h.addError(err)
+		http.Error(response, err.Error(), 401)
+	} else {
+		fmt.Fprintf(response, "{\"status\": \"ok\"}")
+	}
+}
+
+func (h *Hammer) startApiServer() {
+	r := httprouter.New()
+	r.GET("/stats",
+		func(response http.ResponseWriter, request *http.Request, ps httprouter.Params) {
+			h.statsHandler(response, request, ps)
+		})
+
+	r.GET("/update/:attribute/:value",
+		func(response http.ResponseWriter, request *http.Request, ps httprouter.Params) {
+			h.updateHandler(response, request, ps)
+		})
+
+	if err := http.ListenAndServe(fmt.Sprintf("%s:%d", *h.options.ApiAddress, *h.options.ApiPort), handlers.LoggingHandler(os.Stdout, r)); err != nil {
+		h.addError(err)
+	}
 }
 
 func (h *Hammer) stop() {

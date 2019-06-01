@@ -1,7 +1,8 @@
 package stats
 
 import (
-	"fmt"
+	"encoding/json"
+	//"fmt"
 	"github.com/ipchama/dhammer/config"
 	"sync"
 	"time"
@@ -24,10 +25,10 @@ const (
 const StatsTypeMax int = 8
 
 type Stat struct {
-	Name                string
-	Value               int
-	PreviousTickerValue int
-	RatePerSecond       float64
+	Name                string  `json:"stat_name"`
+	Value               int     `json:"stat_value"`
+	PreviousTickerValue int     `json:"stat_previous_ticker_value"`
+	RatePerSecond       float64 `json:"stat_rate_per_second"`
 }
 
 type StatsV4 struct {
@@ -102,7 +103,8 @@ func (s *StatsV4) Run() {
 			case <-ticker.C:
 			}
 
-			s.addLog("\n[STATS]" + s.String())
+			s.statCalc()
+			//s.addLog("\n[STATS]" + s.String())
 		}
 	}()
 
@@ -122,7 +124,7 @@ func (s *StatsV4) Run() {
 	close(s.doneChannel)
 }
 
-func (s *StatsV4) String() string {
+func (s *StatsV4) statCalc() string {
 
 	var StatsTickerRate float64 = float64(*s.options.StatsRate)
 
@@ -131,11 +133,23 @@ func (s *StatsV4) String() string {
 	for i := 0; i < StatsTypeMax; i++ {
 		s.counters[i].RatePerSecond = float64((s.counters[i].Value - s.counters[i].PreviousTickerValue)) / StatsTickerRate
 		s.counters[i].PreviousTickerValue = s.counters[i].Value
-		toString += fmt.Sprintf("\n%v \t Total: %v Rate: %v/sec", s.counters[i].Name, s.counters[i].Value, s.counters[i].RatePerSecond)
 	}
 	s.countersMux.Unlock()
 
 	return toString
+}
+
+func (s *StatsV4) String() string {
+
+	s.countersMux.Lock()
+	defer s.countersMux.Unlock()
+
+	if json, err := json.MarshalIndent(s.counters, "", "  "); err != nil {
+		s.addError(err)
+		return ""
+	} else {
+		return string(json)
+	}
 }
 
 func (s *StatsV4) Stop() error {
