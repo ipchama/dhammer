@@ -307,7 +307,7 @@ func (h *Hammer) statsHandler(response http.ResponseWriter, request *http.Reques
 func (h *Hammer) updateHandler(response http.ResponseWriter, request *http.Request, ps httprouter.Params) {
 	if err := h.generator.Update(ps.ByName("attribute"), ps.ByName("value")); err != nil {
 		h.addError(err)
-		http.Error(response, err.Error(), 401)
+		http.Error(response, err.Error(), 400)
 	} else {
 		fmt.Fprintf(response, "{\"status\": \"ok\"}")
 	}
