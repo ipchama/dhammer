@@ -5,7 +5,11 @@ import signal
 import sys
 import AutoTuner
 
-# autotune.py --api-address localhost --api-port 8080 --tune-field stat_rate_per_second --ramp-up-rate 2 --ramp-down_rate 0.3 --stop-when-tuned true
+"""
+	Example script for interacting with the dhammer API
+
+	Usage: autotune.py --tune-stat-name OfferReceived --tune-stat-compare-name DiscoverSent
+"""
 
 ##### Install a signal handler for CTRL+C #####
 
@@ -26,33 +30,29 @@ def main():
     ##### Get command-line arguments
     parser = argparse.ArgumentParser(description='Find the max request rate.')
     
-    parser.add_argument('--api-address','-a', dest='api_address', default='localhost', required=False,
+    parser.add_argument('--api-address','-a', dest='api_address', default='localhost',
                         help='Address for stats API.')
 
     parser.add_argument('--api-port','-p', dest='api_port', default=8080,
                         help='Port for stats API')
     
     parser.add_argument('--tune-stat-name','-t', dest='tune_stat_name', default=None, required=True,
-                        help='Stats field used to decide if ramp up or down is necessary.')
+                        help='Stat field used to decide if ramp up or down is necessary.')
 
     parser.add_argument('--tune-stat-compare-name','-c', dest='tune_stat_compare_name', default=None, required=True,
-                        help='Stats to compare if the desired goal is to have one rate match another.')
+                        help='Stat used for comparison to determine if goal is being reached.')
 
-    parser.add_argument('--tune-compare-min-percentage','-cp', dest='tune_compare_min_percentage', default=95, required=False,
-                        help='If comparing stats, the minimum percentage match required to consider the tune goal reached.')
+    parser.add_argument('--tune-compare-min-percentage','-cp', dest='tune_compare_min_percentage', default=0.95,
+                        help='The maximum percentage difference between the tuning stat and the comparison stat.')
 
-    parser.add_argument('--ramp-up-rate','-ru', dest='ramp_up_rate', default=2, type=int,
-                        help='Rate to ramp up.')
+    parser.add_argument('--ramp-up-factor','-ru', dest='ramp_up_factor', default=2, type=int,
+                        help='Factor by which to ramp up the target RPS.')
 
-    parser.add_argument('--ramp-down-rate','-rd', dest='ramp_down_rate', default=0.7, type=int,
-                        help='Rate to ramp up.')
+    parser.add_argument('--ramp-down-factor','-rd', dest='ramp_down_factor', default=0.9, type=int,
+                        help='Factor by which to reduce the ramp-up factor.')
     
-    parser.add_argument('--refresh-rate_seconds','-rr', dest='refresh_rate_seconds', default=5, type=int,
-                        help='Rate to check.')
-
-    parser.add_argument('--stop-when-tuned','-s', dest='stop_when_tuned', default=False, type=bool,
-                        help='Stop when it seem the optimal rate has been reached.')
-    
+    parser.add_argument('--refresh-rate_seconds','-rr', dest='refresh_rate_seconds', default=6, type=int,
+                        help='Rate to check stats. Should be slightly longer than the dhammer refresh rate.')
 
     args = parser.parse_args()
     
@@ -64,6 +64,7 @@ def main():
     signal.signal(signal.SIGINT, lambda signal, frame: signal_handler(signal, frame, tuner))
 
     try:
+        tuner.prepare()
         tuner.start()
     except SystemExit:
         pass
