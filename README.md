@@ -84,6 +84,7 @@ Usage of ./dhammer:
     	How frequently to display stats (seconds). (default 5)
 ```
 Stats are now accessible via API calls with JSON responses.  An example python script to interact with them is included in the repo.
+
 Example response:
 ```
 [
