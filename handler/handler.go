@@ -158,10 +158,17 @@ func (h *HandlerV4) Run() {
 
 		dhcpReply = msg.Packet.Layer(layers.LayerTypeDHCPv4).(*layers.DHCPv4)
 
+		var replyOptions [256]layers.DHCPOption
+
+		for _, option := range dhcpReply.Options { // Assuming that we'll expand on usage of options in the reply later and just doing this now.
+			replyOptions[option.Type] = option
+		}
+
+		replyMsgType := replyOptions[layers.DHCPOptMessageType].Data[0]
+
 		//h.addLog(fmt.Sprintf("[REPLY] %v %v %v %v %v", dhcpReply.Options[0].String(), dhcpReply.YourClientIP.String(), string(dhcpReply.ServerName), dhcpReply.ClientIP.String(), dhcpReply.ClientHWAddr))
 
-		// Should do as I've always done and loop through options and not assume that the first is the one we want.
-		if dhcpReply.Options[0].Data[0] == (byte)(layers.DHCPMsgTypeOffer) {
+		if replyMsgType == (byte)(layers.DHCPMsgTypeOffer) {
 
 			h.addStat(stats.OfferReceivedStat)
 
@@ -171,7 +178,7 @@ func (h *HandlerV4) Run() {
 
 				outDhcpLayer.Xid = dhcpReply.Xid
 
-				outDhcpLayer.Options = make(layers.DHCPOptions, 3)
+				outDhcpLayer.Options = make(layers.DHCPOptions, 4)
 
 				if *h.options.DhcpDecline {
 					outDhcpLayer.Options[0] = layers.NewDHCPOption(layers.DHCPOptMessageType, []byte{byte(layers.DHCPMsgTypeDecline)})
@@ -180,7 +187,8 @@ func (h *HandlerV4) Run() {
 				}
 
 				outDhcpLayer.Options[1] = layers.NewDHCPOption(layers.DHCPOptRequestIP, dhcpReply.YourClientIP)
-				outDhcpLayer.Options[2] = layers.NewDHCPOption(layers.DHCPOptEnd, []byte{})
+				outDhcpLayer.Options[2] = layers.NewDHCPOption(layers.DHCPOptServerID, replyOptions[layers.DHCPOptServerID].Data)
+				outDhcpLayer.Options[3] = layers.NewDHCPOption(layers.DHCPOptEnd, []byte{})
 
 				outDhcpLayer.ClientHWAddr = dhcpReply.ClientHWAddr
 
@@ -201,7 +209,7 @@ func (h *HandlerV4) Run() {
 					}
 				}
 			}
-		} else if dhcpReply.Options[0].Data[0] == (byte)(layers.DHCPMsgTypeAck) {
+		} else if replyMsgType == (byte)(layers.DHCPMsgTypeAck) {
 
 			h.addStat(stats.AckReceivedStat)
 

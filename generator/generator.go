@@ -112,6 +112,9 @@ func (g *GeneratorV4) Run() {
 		if err != nil {
 			g.addError(err)
 			continue
+		} else if aOption > 255 {
+			g.addLog("DHCP option codes greater than 255 are not supported. Skipping " + optionValCombo[0])
+			continue
 		}
 
 		aValue, err := base64.StdEncoding.DecodeString(optionValCombo[1])

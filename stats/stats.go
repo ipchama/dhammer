@@ -103,19 +103,15 @@ func (s *StatsV4) Run() {
 			case <-ticker.C:
 			}
 
-			s.statCalc()
+			s.calculateStats()
 			//s.addLog("\n[STATS]" + s.String())
 		}
 	}()
 
-	var sv StatValue
-
-	for ok := true; ok; {
-		if sv, ok = <-s.statChannel; ok {
-			s.countersMux.Lock()
-			s.counters[sv].Value++
-			s.countersMux.Unlock()
-		}
+	for sv, ok := <-s.statChannel; ok; sv, ok = <-s.statChannel {
+		s.countersMux.Lock()
+		s.counters[sv].Value++
+		s.countersMux.Unlock()
 	}
 
 	stopTicker <- struct{}{}
@@ -124,11 +120,10 @@ func (s *StatsV4) Run() {
 	close(s.doneChannel)
 }
 
-func (s *StatsV4) statCalc() string {
+func (s *StatsV4) calculateStats() error {
 
 	var StatsTickerRate float64 = float64(*s.options.StatsRate)
 
-	toString := ""
 	s.countersMux.Lock()
 	for i := 0; i < StatsTypeMax; i++ {
 		s.counters[i].RatePerSecond = float64((s.counters[i].Value - s.counters[i].PreviousTickerValue)) / StatsTickerRate
@@ -136,7 +131,7 @@ func (s *StatsV4) statCalc() string {
 	}
 	s.countersMux.Unlock()
 
-	return toString
+	return nil
 }
 
 func (s *StatsV4) String() string {
