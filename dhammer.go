@@ -26,7 +26,7 @@ func main() {
 	options.MaxLifetime = flag.Int("maxlife", 0, "How long to run. 0 == forever")
 	options.MacCount = flag.Int("mac-count", 1, "Number of unique MAC addresses to pre-generate.")
 
-	options.StatsRate = flag.Int("stats-rate", 5, "How frequently to display stats (seconds).")
+	options.StatsRate = flag.Int("stats-rate", 5, "How frequently to update stat calculations. (seconds).")
 
 	options.Arp = flag.Bool("arp", false, "Respond to arp requests for assigned IPs.")
 	options.Bind = flag.Bool("bind", false, "Bind acquired IPs to the loopback device.  Combined with the --arp option, this will result in fully functioning IPs.")

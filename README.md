@@ -42,23 +42,30 @@ To use the relay, particularly if you'll be attempting to test a server across t
 Dhammer uses very raw sockets to do its job, so `CAP_NET_ADMIN` and `CAP_NET_RAW` are needed at the very least.  I.e., just `sudo` and get moving.
 
 ```
+
 Usage of ./dhammer:
+  -api-address string
+    	IP for the API server to listen on.
+  -api-port int
+    	Port for the API server to listen on. (default 8080)
   -arp
     	Respond to arp requests for assigned IPs.
   -bind
-    	Bind acquired IPs to the loopback device.  Combined with the --arp option, this will result in fully function IPs.
+    	Bind acquired IPs to the loopback device.  Combined with the --arp option, this will result in fully functioning IPs.
+  -decline
+    	Decline offers.
   -dhcp-broadcast
     	Set the broadcast bit. (default true)
   -dhcp-option value
     	Additional DHCP option to send out in the discover. Can be used multiple times. Format: <option num>:<RFC4648-base64-encoded-value>
-  -dhcpinfo
-    	Blast DHCPINFO packets, but don't complete the handshake. NOT YET IMPLEMENTED.
   -ethernet-broadcast
     	Use ethernet broadcasting. (default true)
   -gateway-mac string
     	MAC of the gateway. (default "de:ad:be:ef:f0:0d")
   -handshake
     	Attempt full handshakes (default true)
+  -info
+    	Send DHCPINFO packets. This requires a full handshake.
   -interface string
     	Interface name for listening and sending. (default "eth0")
   -mac-count int
@@ -70,25 +77,65 @@ Usage of ./dhammer:
   -relay-target-server-ip string
     	Target/Destination IP for relayed requests.  relay-source-ip AND relay-target-server-ip must be set for relay mode.
   -release
-    	Release leases
+    	Release leases after acquiring them.
   -rps int
     	Max number of packets per second. 0 == unlimited.
   -stats-rate int
     	How frequently to display stats (seconds). (default 5)
 ```
-Stats example:
+Stats are now accessible via API calls with JSON responses.  An example python script to interact with them is included in the repo.
+Example response:
 ```
-2019/02/09 17:07:19 INFO: 
-[STATS]
-DiscoverSent 	 Total: 11 Rate: 2.2/sec
-InfoSent 	 Total: 0 Rate: 0/sec
-RequestSent 	 Total: 10 Rate: 2/sec
-DeclineSent 	 Total: 0 Rate: 0/sec
-ReleaseSent 	 Total: 10 Rate: 2/sec
-OfferReceived 	 Total: 10 Rate: 2/sec
-AckReceived 	 Total: 10 Rate: 2/sec
-NakReceived 	 Total: 0 Rate: 0/sec
-InfoReceived 	 Total: 0 Rate: 0/sec
+[
+  {
+    "stat_name": "DiscoverSent",
+    "stat_value": 1066,
+    "stat_previous_ticker_value": 975,
+    "stat_rate_per_second": 65
+  },
+  {
+    "stat_name": "InfoSent",
+    "stat_value": 0,
+    "stat_previous_ticker_value": 0,
+    "stat_rate_per_second": 0
+  },
+  {
+    "stat_name": "RequestSent",
+    "stat_value": 933,
+    "stat_previous_ticker_value": 846,
+    "stat_rate_per_second": 63.333333333333336
+  },
+  {
+    "stat_name": "DeclineSent",
+    "stat_value": 0,
+    "stat_previous_ticker_value": 0,
+    "stat_rate_per_second": 0
+  },
+  {
+    "stat_name": "ReleaseSent",
+    "stat_value": 0,
+    "stat_previous_ticker_value": 0,
+    "stat_rate_per_second": 0
+  },
+  {
+    "stat_name": "OfferReceived",
+    "stat_value": 933,
+    "stat_previous_ticker_value": 846,
+    "stat_rate_per_second": 63.333333333333336
+  },
+  {
+    "stat_name": "AckReceived",
+    "stat_value": 882,
+    "stat_previous_ticker_value": 802,
+    "stat_rate_per_second": 61
+  },
+  {
+    "stat_name": "NakReceived",
+    "stat_value": 0,
+    "stat_previous_ticker_value": 0,
+    "stat_rate_per_second": 0
+  }
+]
 ```
 ## Contributing
 
