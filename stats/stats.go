@@ -1,7 +1,8 @@
 package stats
 
 import (
-	"fmt"
+	"encoding/json"
+	//"fmt"
 	"github.com/ipchama/dhammer/config"
 	"sync"
 	"time"
@@ -19,16 +20,15 @@ const (
 	OfferReceivedStat
 	AckReceivedStat
 	NakReceivedStat
-	InfoReceivedStat
 )
 
-const StatsTypeMax int = 9
+const StatsTypeMax int = 8
 
 type Stat struct {
-	Name                string
-	Value               int
-	PreviousTickerValue int
-	RatePerSecond       float64
+	Name                string  `json:"stat_name"`
+	Value               int     `json:"stat_value"`
+	PreviousTickerValue int     `json:"stat_previous_ticker_value"`
+	RatePerSecond       float64 `json:"stat_rate_per_second"`
 }
 
 type StatsV4 struct {
@@ -76,7 +76,6 @@ func (s *StatsV4) Init() error {
 	s.counters[5].Name = "OfferReceived"
 	s.counters[6].Name = "AckReceived"
 	s.counters[7].Name = "NakReceived"
-	s.counters[8].Name = "InfoReceived"
 
 	return nil
 }
@@ -104,18 +103,15 @@ func (s *StatsV4) Run() {
 			case <-ticker.C:
 			}
 
-			s.addLog("\n[STATS]" + s.String())
+			s.calculateStats()
+			//s.addLog("\n[STATS]" + s.String())
 		}
 	}()
 
-	var sv StatValue
-
-	for ok := true; ok; {
-		if sv, ok = <-s.statChannel; ok {
-			s.countersMux.Lock()
-			s.counters[sv].Value++
-			s.countersMux.Unlock()
-		}
+	for sv, ok := <-s.statChannel; ok; sv, ok = <-s.statChannel {
+		s.countersMux.Lock()
+		s.counters[sv].Value++
+		s.countersMux.Unlock()
 	}
 
 	stopTicker <- struct{}{}
@@ -124,20 +120,31 @@ func (s *StatsV4) Run() {
 	close(s.doneChannel)
 }
 
-func (s *StatsV4) String() string {
+func (s *StatsV4) calculateStats() error {
 
 	var StatsTickerRate float64 = float64(*s.options.StatsRate)
 
-	toString := ""
 	s.countersMux.Lock()
 	for i := 0; i < StatsTypeMax; i++ {
 		s.counters[i].RatePerSecond = float64((s.counters[i].Value - s.counters[i].PreviousTickerValue)) / StatsTickerRate
 		s.counters[i].PreviousTickerValue = s.counters[i].Value
-		toString += fmt.Sprintf("\n%v \t Total: %v Rate: %v/sec", s.counters[i].Name, s.counters[i].Value, s.counters[i].RatePerSecond)
 	}
 	s.countersMux.Unlock()
 
-	return toString
+	return nil
+}
+
+func (s *StatsV4) String() string {
+
+	s.countersMux.Lock()
+	defer s.countersMux.Unlock()
+
+	if json, err := json.MarshalIndent(s.counters, "", "  "); err != nil {
+		s.addError(err)
+		return ""
+	} else {
+		return string(json)
+	}
 }
 
 func (s *StatsV4) Stop() error {

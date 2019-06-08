@@ -45,4 +45,7 @@ type Options struct {
 
 	InterfaceName *string
 	GatewayMAC    net.HardwareAddr
+
+	ApiPort    *int
+	ApiAddress *string
 }

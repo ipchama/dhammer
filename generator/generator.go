@@ -24,6 +24,7 @@ type GeneratorV4 struct {
 	addStat       func(stats.StatValue) bool
 	finishChannel chan struct{}
 	doneChannel   chan struct{}
+	rpsChannel    chan int
 }
 
 func NewV4(o *config.Options, iface *net.Interface, logFunc func(string) bool, errFunc func(error) bool, payloadFunc func([]byte) bool, statFunc func(stats.StatValue) bool) *GeneratorV4 {
@@ -37,6 +38,7 @@ func NewV4(o *config.Options, iface *net.Interface, logFunc func(string) bool, e
 		addStat:       statFunc,
 		finishChannel: make(chan struct{}, 1),
 		doneChannel:   make(chan struct{}),
+		rpsChannel:    make(chan int, 1),
 	}
 
 	return &g
@@ -53,6 +55,23 @@ func (g *GeneratorV4) DeInit() error {
 func (g *GeneratorV4) Stop() error {
 	g.finishChannel <- struct{}{}
 	_, _ = <-g.doneChannel
+	return nil
+}
+
+func (g *GeneratorV4) Update(attr interface{}, val interface{}) error {
+
+	if a, ok := attr.(string); ok {
+		if a == "rps" {
+			if v, ok := val.(string); ok {
+				if vI, err := strconv.Atoi(v); err != nil {
+					return err
+				} else {
+					g.rpsChannel <- vI
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -92,6 +111,9 @@ func (g *GeneratorV4) Run() {
 		aOption, err := strconv.Atoi(optionValCombo[0])
 		if err != nil {
 			g.addError(err)
+			continue
+		} else if aOption > 255 {
+			g.addLog("DHCP option codes greater than 255 are not supported. Skipping " + optionValCombo[0])
 			continue
 		}
 
@@ -166,11 +188,19 @@ func (g *GeneratorV4) Run() {
 		default:
 		}
 
+		select {
+		case mRps, _ = <-g.rpsChannel:
+			sent = 0
+			start = time.Now()
+			time.Sleep(1)
+		default:
+		}
+
 		t = time.Now()
 		elapsed = t.Sub(start).Seconds()
 		rps = int(float64(sent) / elapsed)
 
-		if rps > mRps {
+		if rps >= mRps {
 			runtime.Gosched()
 			continue
 		}

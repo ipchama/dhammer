@@ -15,7 +15,7 @@ func main() {
 	options := &config.Options{}
 
 	options.Handshake = flag.Bool("handshake", true, "Attempt full handshakes")
-	options.DhcpInfo = flag.Bool("dhcpinfo", false, "Blast DHCPINFO packets, but don't complete the handshake. NOT YET IMPLEMENTED.")
+	options.DhcpInfo = flag.Bool("info", false, "Send DHCPINFO packets. This requires a full handshake.")
 	options.DhcpBroadcast = flag.Bool("dhcp-broadcast", true, "Set the broadcast bit.")
 	options.EthernetBroadcast = flag.Bool("ethernet-broadcast", true, "Use ethernet broadcasting.")
 	options.DhcpRelease = flag.Bool("release", false, "Release leases after acquiring them.")
@@ -38,6 +38,10 @@ func main() {
 
 	options.InterfaceName = flag.String("interface", "eth0", "Interface name for listening and sending.")
 	gatewayMAC := flag.String("gateway-mac", "de:ad:be:ef:f0:0d", "MAC of the gateway.")
+
+	options.ApiAddress = flag.String("api-address", "", "IP for the API server to listen on.")
+	options.ApiPort = flag.Int("api-port", 8080, "Port for the API server to listen on.")
+
 	flag.Parse()
 
 	var err error

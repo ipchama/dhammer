@@ -1,20 +1,28 @@
 package hammer
 
 import (
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"sync"
+	"time"
+
 	"github.com/ipchama/dhammer/config"
 	"github.com/ipchama/dhammer/generator"
 	"github.com/ipchama/dhammer/handler"
 	"github.com/ipchama/dhammer/message"
 	"github.com/ipchama/dhammer/socketeer"
 	"github.com/ipchama/dhammer/stats"
-	"log"
-	"sync"
+
+	"github.com/corneldamian/httpway"
+	"github.com/gorilla/handlers"
+	"github.com/julienschmidt/httprouter"
 )
 
 /*
 	TODO:
 		Factory for generator/handler/stats based on future ipv option.
-		Info option.
 		Option to automatically select gateway MAC from default route gateway.
 */
 
@@ -28,6 +36,7 @@ type Handler interface {
 
 type Generator interface {
 	Init() error
+	Update(interface{}, interface{}) error
 	Run()
 	Stop() error
 	DeInit() error
@@ -45,12 +54,15 @@ type Stats interface {
 type Hammer struct {
 	options      *config.Options
 	logChannel   chan string
+	statsChannel chan string
 	errorChannel chan error
 
 	handler   Handler
 	generator Generator
 	stats     Stats
 	socketeer *socketeer.RawSocketeer
+
+	apiServer *httpway.Server
 }
 
 func New(o *config.Options) *Hammer {
@@ -58,6 +70,7 @@ func New(o *config.Options) *Hammer {
 	h := Hammer{
 		options:      o,
 		logChannel:   make(chan string, 1000),
+		statsChannel: make(chan string, 1000),
 		errorChannel: make(chan error, 1000),
 	}
 
@@ -70,7 +83,7 @@ func (h *Hammer) Init() error {
 
 	log.SetFlags(log.LstdFlags | log.LUTC)
 
-	h.stats = stats.NewV4(h.options, h.addLog, h.addError)
+	h.stats = stats.NewV4(h.options, h.addStats, h.addError)
 	if err = h.stats.Init(); err != nil {
 		return err
 	}
@@ -178,6 +191,20 @@ func (h *Hammer) Run() error {
 		log.Print("INFO: Stopped log channel reader.")
 	}()
 
+	log.Print("INFO: Starting stats channel reader.")
+	wg.Add(1)
+	go func() {
+		var msg string
+
+		for ok := true; ok; {
+			if msg, ok = <-h.statsChannel; ok {
+				log.Print(msg)
+			}
+		}
+		wg.Done()
+		log.Print("INFO: Stopped stats channel reader.")
+	}()
+
 	log.Print("INFO: Starting generator.")
 	wg.Add(1)
 	go func() {
@@ -187,6 +214,10 @@ func (h *Hammer) Run() error {
 		h.stop()
 		wg.Done()
 	}()
+
+	log.Print("INFO: Starting API server.")
+	h.startApiServer()
+	log.Print("INFO: Stopped API server.")
 
 	wg.Wait()
 
@@ -212,6 +243,16 @@ func (h *Hammer) addLog(s string) bool {
 	return false
 }
 
+func (h *Hammer) addStats(s string) bool {
+	select {
+	case h.statsChannel <- s:
+		return true
+	default:
+	}
+
+	return false
+}
+
 func (h *Hammer) Stop() {
 	// All "stop" calls should block.
 	// This will make sure no new payloads go TO the writer FROM the generator.
@@ -222,6 +263,11 @@ func (h *Hammer) stop() {
 	var err error
 
 	// All "stop" calls should block.
+
+	if err = h.stopApiServer(); err != nil {
+		h.addError(err)
+	}
+
 	if err = h.socketeer.StopListener(); err != nil { // This will make sure no new messages are sent TO the handler.
 		h.addError(err)
 	}
@@ -247,4 +293,55 @@ func (h *Hammer) stop() {
 
 	close(h.errorChannel)
 	close(h.logChannel)
+	close(h.statsChannel)
+}
+
+/*************************
+ * API Server
+ *************************/
+
+func (h *Hammer) statsHandler(response http.ResponseWriter, request *http.Request, ps httprouter.Params) {
+	fmt.Fprintf(response, h.stats.String())
+}
+
+func (h *Hammer) updateHandler(response http.ResponseWriter, request *http.Request, ps httprouter.Params) {
+	if err := h.generator.Update(ps.ByName("attribute"), ps.ByName("value")); err != nil {
+		h.addError(err)
+		http.Error(response, err.Error(), 400)
+	} else {
+		fmt.Fprintf(response, "{\"status\": \"ok\"}")
+	}
+}
+
+func (h *Hammer) startApiServer() {
+	r := httprouter.New()
+	r.GET("/stats",
+		func(response http.ResponseWriter, request *http.Request, ps httprouter.Params) {
+			h.statsHandler(response, request, ps)
+		})
+
+	r.GET("/update/:attribute/:value",
+		func(response http.ResponseWriter, request *http.Request, ps httprouter.Params) {
+			h.updateHandler(response, request, ps)
+		})
+
+	h.apiServer = httpway.NewServer(nil)
+	h.apiServer.Handler = handlers.LoggingHandler(os.Stdout, r)
+	h.apiServer.Addr = fmt.Sprintf("%s:%d", *h.options.ApiAddress, *h.options.ApiPort)
+
+	if err := h.apiServer.Start(); err != nil {
+		h.addError(err)
+	}
+
+	if err := h.apiServer.WaitStop(2 * time.Second); err != nil {
+		h.addError(err)
+	}
+}
+
+func (h *Hammer) stopApiServer() error {
+	if err := h.apiServer.Stop(); err != nil {
+		return err
+	}
+
+	return nil
 }
