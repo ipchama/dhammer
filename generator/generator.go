@@ -161,7 +161,7 @@ func (g *GeneratorV4) Run() {
 
 	udpLayer := &layers.UDP{
 		SrcPort: layers.UDPPort(68),
-		DstPort: layers.UDPPort(*g.options.RelayTargetPort),
+		DstPort: layers.UDPPort(*g.options.TargetPort),
 	}
 
 	i := 0 // Increment later

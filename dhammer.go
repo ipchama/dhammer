@@ -33,7 +33,7 @@ func main() {
 
 	relayIP := flag.String("relay-source-ip", "", "Source IP for relayed requests.  relay-source-ip AND relay-target-server-ip must be set for relay mode.")
 	targetServerIP := flag.String("relay-target-server-ip", "", "Target/Destination IP for relayed requests.  relay-source-ip AND relay-target-server-ip must be set for relay mode.")
-	options.RelayTargetPort = flag.Int("relay-target-port", 67, "Target port for special cases.  Rarely would you want to use this.")
+	options.TargetPort = flag.Int("target-port", 67, "Target port for special cases.  Rarely would you want to use this.")
 
 	flag.Var(&options.AdditionalDhcpOptions, "dhcp-option", "Additional DHCP option to send out in the discover. Can be used multiple times. Format: <option num>:<RFC4648-base64-encoded-value>")
 

@@ -34,7 +34,7 @@ type Options struct {
 	DhcpRelay           bool
 	RelaySourceIP       net.IP
 	RelayTargetServerIP net.IP
-	RelayTargetPort     *int
+	TargetPort          *int
 
 	AdditionalDhcpOptions FlagArrayString
 

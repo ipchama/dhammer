@@ -114,7 +114,7 @@ func (h *HandlerV4) Run() {
 
 	udpLayer := &layers.UDP{
 		SrcPort: layers.UDPPort(68),
-		DstPort: layers.UDPPort(67),
+		DstPort: layers.UDPPort(*h.options.TargetPort),
 	}
 
 	outDhcpLayer := &layers.DHCPv4{
