@@ -34,7 +34,7 @@ type Stat struct {
 type StatsV4 struct {
 	options *config.Options
 
-	countersMux *sync.Mutex
+	countersMux *sync.RWMutex
 	counters    [StatsTypeMax]Stat
 
 	addLog   func(string) bool
@@ -51,7 +51,7 @@ func NewV4(o *config.Options, logFunc func(string) bool, errFunc func(error) boo
 		addError:    errFunc,
 		statChannel: make(chan StatValue, 10000),
 		doneChannel: make(chan struct{}, 1),
-		countersMux: &sync.Mutex{},
+		countersMux: &sync.RWMutex{},
 	}
 
 	return &s
@@ -136,8 +136,8 @@ func (s *StatsV4) calculateStats() error {
 
 func (s *StatsV4) String() string {
 
-	s.countersMux.Lock()
-	defer s.countersMux.Unlock()
+	s.countersMux.RLock()
+	defer s.countersMux.RUnlock()
 
 	if json, err := json.MarshalIndent(s.counters, "", "  "); err != nil {
 		s.addError(err)
