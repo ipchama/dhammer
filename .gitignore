@@ -1,2 +1,5 @@
 /dhammer
 .project
+*.pyc
+__pycache__
+.pydevproject
