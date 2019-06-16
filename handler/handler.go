@@ -135,7 +135,7 @@ func (h *HandlerV4) Run() {
 		ethernetLayer.SrcMAC = h.iface.HardwareAddr
 		ethernetLayer.DstMAC = h.options.GatewayMAC
 
-		outDhcpLayer.RelayAgentIP = h.options.RelaySourceIP
+		outDhcpLayer.RelayAgentIP = h.options.RelayGatewayIP
 	}
 
 	goPacketSerializeOpts := gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}

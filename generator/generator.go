@@ -156,7 +156,7 @@ func (g *GeneratorV4) Run() {
 		ethernetLayer.SrcMAC = g.iface.HardwareAddr
 		ethernetLayer.DstMAC = g.options.GatewayMAC
 
-		outDhcpLayer.RelayAgentIP = g.options.RelaySourceIP
+		outDhcpLayer.RelayAgentIP = g.options.RelayGatewayIP
 	}
 
 	udpLayer := &layers.UDP{

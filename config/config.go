@@ -33,6 +33,7 @@ type Options struct {
 
 	DhcpRelay           bool
 	RelaySourceIP       net.IP
+	RelayGatewayIP      net.IP
 	RelayTargetServerIP net.IP
 	TargetPort          *int
 
