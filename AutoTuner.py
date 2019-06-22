@@ -41,7 +41,7 @@ class AutoTuner:
             self._previous_ramped_up_rps = self._rps
             self._rps = self._rps * self._options.ramp_up_factor             
 
-            response = requests.get(f"http://{self._options.api_address}:{self._options.api_port}/update/rps/{math.floor(self._rps)}")
+            response = requests.put(f"http://{self._options.api_address}:{self._options.api_port}/update", data=f'{{"rps": {math.floor(self._rps)}}}')
             response.raise_for_status()
             
             print(f"{target_stat['stat_name']} / {compare_stat['stat_name']} = {diff_perc}: ramped up. Target RPS is {self._rps}.")
@@ -57,14 +57,14 @@ class AutoTuner:
              
             self._rps = self._previous_ramped_up_rps * self._options.ramp_up_factor
             
-            response = requests.get(f"http://{self._options.api_address}:{self._options.api_port}/update/rps/{math.floor(self._rps)}")
+            response = requests.put(f"http://{self._options.api_address}:{self._options.api_port}/update", data=f'{{"rps": {math.floor(self._rps)}}}')
             response.raise_for_status()
             print(f"{target_stat['stat_name']} / {compare_stat['stat_name']} = {diff_perc}: ramped down. Target RPS is {self._rps}.")
 
         return(True)
 
     def prepare(self):
-        response = requests.get(f"http://{self._options.api_address}:{self._options.api_port}/update/rps/1")
+        response = requests.put(f"http://{self._options.api_address}:{self._options.api_port}/update", data='{"rps": 1}')
         response.raise_for_status()
         time.sleep(self._options.refresh_rate_seconds)
   

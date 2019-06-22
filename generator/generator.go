@@ -58,21 +58,16 @@ func (g *GeneratorV4) Stop() error {
 	return nil
 }
 
-func (g *GeneratorV4) Update(attr interface{}, val interface{}) error {
+func (g *GeneratorV4) Update(details interface{}) error {
 
-	if a, ok := attr.(string); ok {
-		if a == "rps" {
-			if v, ok := val.(string); ok {
-				if vI, err := strconv.Atoi(v); err != nil {
-					return err
-				} else {
-					g.rpsChannel <- vI
-				}
-			}
+	if d, ok := details.(map[string]interface{}); ok {
+		if v, ok := d["rps"].(float64); ok {
+			g.rpsChannel <- int(v)
+			return nil
 		}
 	}
 
-	return nil
+	return fmt.Errorf("Update request failed.  Data was %v", details)
 }
 
 func (g *GeneratorV4) Run() {

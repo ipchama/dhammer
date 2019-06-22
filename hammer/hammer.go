@@ -1,7 +1,9 @@
 package hammer
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -36,7 +38,7 @@ type Handler interface {
 
 type Generator interface {
 	Init() error
-	Update(interface{}, interface{}) error
+	Update(interface{}) error
 	Run()
 	Stop() error
 	DeInit() error
@@ -305,12 +307,32 @@ func (h *Hammer) statsHandler(response http.ResponseWriter, request *http.Reques
 }
 
 func (h *Hammer) updateHandler(response http.ResponseWriter, request *http.Request, ps httprouter.Params) {
-	if err := h.generator.Update(ps.ByName("attribute"), ps.ByName("value")); err != nil {
+
+	body, err := ioutil.ReadAll(request.Body)
+
+	if err != nil {
 		h.addError(err)
 		http.Error(response, err.Error(), 400)
-	} else {
-		fmt.Fprintf(response, "{\"status\": \"ok\"}")
+		return
 	}
+
+	var details map[string]interface{}
+
+	err = json.Unmarshal(body, &details)
+
+	if err != nil {
+		h.addError(err)
+		http.Error(response, err.Error(), 400)
+		return
+	}
+
+	if err := h.generator.Update(details); err != nil {
+		h.addError(err)
+		http.Error(response, err.Error(), 500)
+		return
+	}
+
+	fmt.Fprintf(response, "{\"status\": \"ok\"}")
 }
 
 func (h *Hammer) startApiServer() {
@@ -320,7 +342,7 @@ func (h *Hammer) startApiServer() {
 			h.statsHandler(response, request, ps)
 		})
 
-	r.GET("/update/:attribute/:value",
+	r.PUT("/update",
 		func(response http.ResponseWriter, request *http.Request, ps httprouter.Params) {
 			h.updateHandler(response, request, ps)
 		})
