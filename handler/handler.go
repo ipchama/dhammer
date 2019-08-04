@@ -136,6 +136,7 @@ func (h *HandlerV4) Run() {
 		ethernetLayer.DstMAC = h.options.GatewayMAC
 
 		outDhcpLayer.RelayAgentIP = h.options.RelayGatewayIP
+		udpLayer.SrcPort = 67
 	}
 
 	goPacketSerializeOpts := gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}
