@@ -144,6 +144,11 @@ func (g *GeneratorV4) Run() {
 		DstIP:    net.IPv4(255, 255, 255, 255),
 	}
 
+	udpLayer := &layers.UDP{
+		SrcPort: layers.UDPPort(68),
+		DstPort: layers.UDPPort(*g.options.TargetPort),
+	}
+
 	if g.options.DhcpRelay {
 		ipLayer.SrcIP = g.options.RelaySourceIP
 		ipLayer.DstIP = g.options.RelayTargetServerIP
@@ -152,11 +157,8 @@ func (g *GeneratorV4) Run() {
 		ethernetLayer.DstMAC = g.options.GatewayMAC
 
 		outDhcpLayer.RelayAgentIP = g.options.RelayGatewayIP
-	}
 
-	udpLayer := &layers.UDP{
-		SrcPort: layers.UDPPort(68),
-		DstPort: layers.UDPPort(*g.options.TargetPort),
+		udpLayer.SrcPort = 67
 	}
 
 	i := 0 // Increment later
