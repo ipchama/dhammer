@@ -46,9 +46,9 @@ type Options struct {
 
 	StatsRate *int
 
-	InterfaceName      *string
-	GatewayMAC         net.HardwareAddr
-	UsePromiscuousMode *bool
+	InterfaceName   *string
+	GatewayMAC      net.HardwareAddr
+	PromiscuousMode *bool
 
 	ApiPort    *int
 	ApiAddress *string

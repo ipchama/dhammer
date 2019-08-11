@@ -41,7 +41,7 @@ func main() {
 
 	options.InterfaceName = flag.String("interface", "eth0", "Interface name for listening and sending.")
 	gatewayMAC := flag.String("gateway-mac", "de:ad:be:ef:f0:0d", "MAC of the gateway.")
-	options.UsePromiscuousMode = flag.Bool("promisc", false, "Turn on promiscuous mode for the listening interface.")
+	options.PromiscuousMode = flag.Bool("promisc", false, "Turn on promiscuous mode for the listening interface.")
 
 	options.ApiAddress = flag.String("api-address", "", "IP for the API server to listen on.")
 	options.ApiPort = flag.Int("api-port", 8080, "Port for the API server to listen on.")
