@@ -10,7 +10,7 @@ Dhammer is a stress-tester for DHCP servers.  It currently only supports DHCPv4,
 
 Dhammer can act as a "local" DHCP client broadcasting packets, or it can simulate a DHCP relay, allowing you to test DHCP servers outside of your local network and also to avoid any potential broadcast-storm safeguards your router might have.
 
-It's also possible to have dhammer bind any assigned IPs to the loopback and handle ARP requests.
+It's also possible to have dhammer bind any assigned IPs to the loopback and handle ARP requests, including responding to ARPs with a generated MAC address instead of the actual MAC of the interface sending the original DHCP requests.
 
 ## Getting Started
 
@@ -50,6 +50,8 @@ Usage of ./dhammer:
     	Port for the API server to listen on. (default 8080)
   -arp
     	Respond to arp requests for assigned IPs.
+  -arp-fake-mac
+    	Respond to ARP requests with the generated MAC used to originally obtain the lease.  You might want to set arp_ignore to 1 or 3 for the interface sending packets. For full functionality, the --promisc option is needed.
   -bind
     	Bind acquired IPs to the loopback device.  Combined with the --arp option, this will result in fully functioning IPs.
   -decline
@@ -72,6 +74,10 @@ Usage of ./dhammer:
     	Number of unique MAC addresses to pre-generate. (default 1)
   -maxlife int
     	How long to run. 0 == forever
+  -promisc
+    	Turn on promiscuous mode for the listening interface.
+  -relay-gateway-ip string
+    	Gateway (giaddr) IP for relayed requests.  If not set, it will default to the relay source IP.
   -relay-source-ip string
     	Source IP for relayed requests.  relay-source-ip AND relay-target-server-ip must be set for relay mode.
   -relay-target-server-ip string
@@ -81,11 +87,13 @@ Usage of ./dhammer:
   -rps int
     	Max number of packets per second. 0 == unlimited.
   -stats-rate int
-    	How frequently to display stats (seconds). (default 5)
+    	How frequently to update stat calculations. (seconds). (default 5)
+  -target-port int
+    	Target port for special cases.  Rarely would you want to use this. (default 67)
 ```
 Stats are now accessible via API calls with JSON responses.  An example python script to interact with them is included in the repo.
 
-Example response:
+Example response from http://localhost:8080/stats:
 ```
 [
   {
