@@ -28,8 +28,9 @@ type Options struct {
 	DhcpRelease       *bool
 	DhcpDecline       *bool
 
-	Arp  *bool
-	Bind *bool
+	Arp        *bool
+	ArpFakeMAC *bool
+	Bind       *bool
 
 	DhcpRelay           bool
 	RelaySourceIP       net.IP
@@ -45,8 +46,9 @@ type Options struct {
 
 	StatsRate *int
 
-	InterfaceName *string
-	GatewayMAC    net.HardwareAddr
+	InterfaceName   *string
+	GatewayMAC      net.HardwareAddr
+	PromiscuousMode *bool
 
 	ApiPort    *int
 	ApiAddress *string
