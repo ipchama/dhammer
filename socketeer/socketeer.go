@@ -70,18 +70,32 @@ func (s *RawSocketeer) Init() error {
 		Addr:     haddr,
 	}
 
-	err = syscall.Bind(s.socketFd, &addr)
-
-	if err != nil {
+	if err = syscall.Bind(s.socketFd, &addr); err != nil {
 		return err
+	}
+
+	if *s.options.UsePromiscuousMode {
+		if err = syscall.SetLsfPromisc(*s.options.InterfaceName, true); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
 func (s *RawSocketeer) DeInit() error {
-	err := syscall.Close(s.socketFd)
-	return err
+
+	if *s.options.UsePromiscuousMode {
+		if err := syscall.SetLsfPromisc(*s.options.InterfaceName, false); err != nil {
+			return err
+		}
+	}
+
+	if err := syscall.Close(s.socketFd); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *RawSocketeer) RunListener() {

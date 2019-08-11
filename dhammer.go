@@ -29,6 +29,7 @@ func main() {
 	options.StatsRate = flag.Int("stats-rate", 5, "How frequently to update stat calculations. (seconds).")
 
 	options.Arp = flag.Bool("arp", false, "Respond to arp requests for assigned IPs.")
+	options.ArpFakeMAC = flag.Bool("arp-fake-mac", false, "Respond to ARP requests with the generated MAC used to originally obtain the lease.  You might want to set arp_ignore to 1 or 3 for the interface sending packets. For full functionality, the --promisc option is needed.")
 	options.Bind = flag.Bool("bind", false, "Bind acquired IPs to the loopback device.  Combined with the --arp option, this will result in fully functioning IPs.")
 
 	relayIP := flag.String("relay-source-ip", "", "Source IP for relayed requests.  relay-source-ip AND relay-target-server-ip must be set for relay mode.")
@@ -40,6 +41,7 @@ func main() {
 
 	options.InterfaceName = flag.String("interface", "eth0", "Interface name for listening and sending.")
 	gatewayMAC := flag.String("gateway-mac", "de:ad:be:ef:f0:0d", "MAC of the gateway.")
+	options.UsePromiscuousMode = flag.Bool("promisc", false, "Turn on promiscuous mode for the listening interface.")
 
 	options.ApiAddress = flag.String("api-address", "", "IP for the API server to listen on.")
 	options.ApiPort = flag.Int("api-port", 8080, "Port for the API server to listen on.")

@@ -1,7 +1,6 @@
 package handler
 
 import (
-	//"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/ipchama/dhammer/config"
@@ -16,6 +15,7 @@ type Lease struct {
 	Packet   gopacket.Packet
 	LinkAddr *netlink.Addr
 	Acquired time.Time
+	HwAddr   net.HardwareAddr
 }
 
 type HandlerV4 struct {
@@ -223,6 +223,7 @@ func (h *HandlerV4) Run() {
 					h.acquiredIPs[ipStr] = &Lease{
 						Packet:   msg.Packet,
 						Acquired: time.Now(),
+						HwAddr:   dhcpReply.ClientHWAddr,
 					}
 
 					if *h.options.Bind {
@@ -321,7 +322,7 @@ func (h *HandlerV4) handleARP(msg message.Message) {
 	arpRequest := msg.Packet.Layer(layers.LayerTypeARP).(*layers.ARP)
 
 	if arpRequest.Operation == layers.ARPRequest {
-		if _, found := h.acquiredIPs[net.IP(arpRequest.DstProtAddress).String()]; found {
+		if lease, found := h.acquiredIPs[net.IP(arpRequest.DstProtAddress).String()]; found {
 
 			goPacketSerializeOpts := gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}
 
@@ -342,6 +343,10 @@ func (h *HandlerV4) handleARP(msg message.Message) {
 				Protocol:          arpRequest.Protocol,
 				SourceHwAddress:   h.iface.HardwareAddr,
 				SourceProtAddress: arpRequest.DstProtAddress,
+			}
+
+			if *h.options.ArpFakeMAC {
+				arpLayer.SourceHwAddress = lease.HwAddr
 			}
 
 			buf := gopacket.NewSerializeBuffer()
