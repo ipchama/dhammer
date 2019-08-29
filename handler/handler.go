@@ -151,6 +151,7 @@ func (h *HandlerV4) Run() {
 		}
 
 		if *h.options.Arp && msg.Packet.Layer(layers.LayerTypeARP) != nil {
+			h.addStat(stats.ArpRequestReceivedStat)
 			h.handleARP(msg)
 			continue
 		} else if msg.Packet.Layer(layers.LayerTypeDHCPv4) == nil {
@@ -356,7 +357,9 @@ func (h *HandlerV4) handleARP(msg message.Message) {
 				arpLayer,
 			)
 
-			h.sendPayload(buf.Bytes())
+			if h.sendPayload(buf.Bytes()) {
+				h.addStat(stats.ArpReplySentStat)
+			}
 		}
 	}
 }
