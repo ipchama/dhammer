@@ -20,9 +20,12 @@ const (
 	OfferReceivedStat
 	AckReceivedStat
 	NakReceivedStat
+
+	ArpReplySentStat
+	ArpRequestReceivedStat
 )
 
-const StatsTypeMax int = 8
+const StatsTypeMax int = 10
 
 type Stat struct {
 	Name                string  `json:"stat_name"`
@@ -76,6 +79,9 @@ func (s *StatsV4) Init() error {
 	s.counters[5].Name = "OfferReceived"
 	s.counters[6].Name = "AckReceived"
 	s.counters[7].Name = "NakReceived"
+
+	s.counters[8].Name = "ArpReplySent"
+	s.counters[9].Name = "ArpRequestReceived"
 
 	return nil
 }
