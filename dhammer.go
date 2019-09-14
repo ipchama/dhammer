@@ -33,7 +33,7 @@ func main() {
 	options.Bind = flag.Bool("bind", false, "Bind acquired IPs to the loopback device.  Combined with the --arp option, this will result in fully functioning IPs.")
 
 	relayIP := flag.String("relay-source-ip", "", "Source IP for relayed requests.  relay-source-ip AND relay-target-server-ip must be set for relay mode.")
-	relayGatewayIP := flag.String("relay-gateway-ip", *relayIP, "Gateway (giaddr) IP for relayed requests.  If not set, it will default to the relay source IP.")
+	relayGatewayIP := flag.String("relay-gateway-ip", "", "Gateway (giaddr) IP for relayed requests.  If not set, it will default to the relay source IP.")
 	targetServerIP := flag.String("relay-target-server-ip", "", "Target/Destination IP for relayed requests.  relay-source-ip AND relay-target-server-ip must be set for relay mode.")
 	options.TargetPort = flag.Int("target-port", 67, "Target port for special cases.  Rarely would you want to use this.")
 
@@ -53,6 +53,10 @@ func main() {
 	options.RelaySourceIP = net.ParseIP(*relayIP)
 	options.RelayGatewayIP = net.ParseIP(*relayGatewayIP)
 	options.RelayTargetServerIP = net.ParseIP(*targetServerIP)
+
+	if options.RelayGatewayIP == nil {
+		options.RelayGatewayIP = options.RelaySourceIP
+	}
 
 	if options.RelaySourceIP != nil && options.RelayTargetServerIP != nil {
 		options.DhcpRelay = true
