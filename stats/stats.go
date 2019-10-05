@@ -114,7 +114,7 @@ func (s *StatsV4) Run() {
 		}
 	}()
 
-	for sv, ok := <-s.statChannel; ok; sv, ok = <-s.statChannel {
+	for sv := range s.statChannel {
 		s.countersMux.Lock()
 		s.counters[sv].Value++
 		s.countersMux.Unlock()

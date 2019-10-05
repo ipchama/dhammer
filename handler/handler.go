@@ -141,14 +141,7 @@ func (h *HandlerV4) Run() {
 
 	goPacketSerializeOpts := gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}
 
-	ok := true
-
-	for {
-
-		if msg, ok = <-h.inputChannel; !ok {
-			h.doneChannel <- struct{}{}
-			return
-		}
+	for msg = range h.inputChannel {
 
 		if *h.options.Arp && msg.Packet.Layer(layers.LayerTypeARP) != nil {
 			h.addStat(stats.ArpRequestReceivedStat)
@@ -317,6 +310,8 @@ func (h *HandlerV4) Run() {
 			h.addStat(stats.NakReceivedStat)
 		}
 	}
+
+	h.doneChannel <- struct{}{}
 }
 
 func (h *HandlerV4) handleARP(msg message.Message) {

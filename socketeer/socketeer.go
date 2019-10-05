@@ -111,12 +111,8 @@ func (s *RawSocketeer) RunListener() {
 		default:
 		}
 
-		/*
-			TODO: Should make this non-blocking.
-			In reality, this socket is so raw that there's almost certainly going to be a high enough
-			frequency of packets that it won't block for long, but why leave that to chance.
-		*/
 		read, ifrom, err := syscall.Recvfrom(s.socketFd, data, 0)
+
 		if err != nil {
 			s.addError(err)
 			continue
@@ -156,9 +152,13 @@ func (s *RawSocketeer) RunWriter() {
 }
 
 func (s *RawSocketeer) StopListener() error {
+
+	err := syscall.Close(s.socketFd)
+
 	s.finishChannel <- struct{}{}
 	_, _ = <-s.doneChannel
-	return nil
+
+	return err
 }
 
 func (s *RawSocketeer) StopWriter() error {
