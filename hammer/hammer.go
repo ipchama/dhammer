@@ -13,7 +13,7 @@ import (
 	"github.com/ipchama/dhammer/config"
 	"github.com/ipchama/dhammer/generator"
 	"github.com/ipchama/dhammer/handler"
-	"github.com/ipchama/dhammer/message"
+	//"github.com/ipchama/dhammer/message"
 	"github.com/ipchama/dhammer/socketeer"
 	"github.com/ipchama/dhammer/stats"
 
@@ -28,40 +28,15 @@ import (
 		Option to automatically select gateway MAC from default route gateway.
 */
 
-type Handler interface {
-	ReceiveMessage(m message.Message) bool
-	Init() error
-	Run()
-	Stop() error
-	DeInit() error
-}
-
-type Generator interface {
-	Init() error
-	Update(interface{}) error
-	Run()
-	Stop() error
-	DeInit() error
-}
-
-type Stats interface {
-	AddStat(s stats.StatValue) bool
-	Init() error
-	Run()
-	String() string
-	Stop() error
-	DeInit() error
-}
-
 type Hammer struct {
 	options      *config.Options
 	logChannel   chan string
 	statsChannel chan string
 	errorChannel chan error
 
-	handler   Handler
-	generator Generator
-	stats     Stats
+	handler   handler.Handler
+	generator generator.Generator
+	stats     stats.Stats
 	socketeer *socketeer.RawSocketeer
 
 	apiServer *httpway.Server
@@ -85,7 +60,10 @@ func (h *Hammer) Init() error {
 
 	log.SetFlags(log.LstdFlags | log.LUTC)
 
-	h.stats = stats.NewV4(h.options, h.addStats, h.addError)
+	if err, h.stats = stats.New(h.options, h.addStats, h.addError); err != nil {
+		return err
+	}
+
 	if err = h.stats.Init(); err != nil {
 		return err
 	}
@@ -95,14 +73,20 @@ func (h *Hammer) Init() error {
 		return err
 	}
 
-	h.handler = handler.NewV4(h.options, h.socketeer.IfInfo, h.addLog, h.addError, h.socketeer.AddPayload, h.stats.AddStat)
+	if err, h.handler = handler.New(h.options, h.socketeer.IfInfo, h.addLog, h.addError, h.socketeer.AddPayload, h.stats.AddStat); err != nil {
+		return err
+	}
+
 	if err := h.handler.Init(); err != nil {
 		return err
 	}
 
 	h.socketeer.SetReceiver(h.handler.ReceiveMessage)
 
-	h.generator = generator.NewV4(h.options, h.socketeer.IfInfo, h.addLog, h.addError, h.socketeer.AddPayload, h.stats.AddStat)
+	if err, h.generator = generator.New(h.options, h.socketeer.IfInfo, h.addLog, h.addError, h.socketeer.AddPayload, h.stats.AddStat); err != nil {
+		return err
+	}
+
 	if err = h.generator.Init(); err != nil {
 		return err
 	}
