@@ -24,7 +24,17 @@ type GeneratorInitParams struct {
 	statFunc    func(stats.StatValue) bool
 }
 
-var Generators map[string]func(GeneratorInitParams) Generator = make(map[string]func(GeneratorInitParams) Generator)
+var generators map[string]func(GeneratorInitParams) Generator = make(map[string]func(GeneratorInitParams) Generator)
+
+func AddGenerator(s string, f func(GeneratorInitParams) Generator) error {
+	if _, found := generators[s]; found {
+		return errors.New("Generator type already exists: " + s)
+	}
+
+	generators[s] = f
+
+	return nil
+}
 
 func New(o *config.Options, iface *net.Interface, logFunc func(string) bool, errFunc func(error) bool, payloadFunc func([]byte) bool, statFunc func(stats.StatValue) bool) (error, Generator) {
 
@@ -37,7 +47,7 @@ func New(o *config.Options, iface *net.Interface, logFunc func(string) bool, err
 		statFunc:    statFunc,
 	}
 
-	gf, ok := Generators[*o.HammerType]
+	gf, ok := generators[*o.HammerType]
 
 	if !ok {
 		return errors.New("Generators - Hammer type not found: " + *o.HammerType), nil

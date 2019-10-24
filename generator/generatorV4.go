@@ -28,7 +28,9 @@ type GeneratorV4 struct {
 }
 
 func init() {
-	Generators["dhcpv4"] = NewDhcpV4
+	if err := AddGenerator("dhcpv4", NewDhcpV4); err != nil {
+		panic(err)
+	}
 }
 
 func NewDhcpV4(gip GeneratorInitParams) Generator {

@@ -29,7 +29,17 @@ type StatsInitParams struct {
 	errFunc func(error) bool
 }
 
-var Statters map[string]func(StatsInitParams) Stats = make(map[string]func(StatsInitParams) Stats)
+var statters map[string]func(StatsInitParams) Stats = make(map[string]func(StatsInitParams) Stats)
+
+func AddStatter(s string, f func(StatsInitParams) Stats) error {
+	if _, found := statters[s]; found {
+		return errors.New("Stats type already exists: " + s)
+	}
+
+	statters[s] = f
+
+	return nil
+}
 
 func New(o *config.Options, logFunc func(string) bool, errFunc func(error) bool) (error, Stats) {
 	sip := StatsInitParams{
@@ -38,7 +48,7 @@ func New(o *config.Options, logFunc func(string) bool, errFunc func(error) bool)
 		errFunc: errFunc,
 	}
 
-	sf, ok := Statters[*o.HammerType]
+	sf, ok := statters[*o.HammerType]
 
 	if !ok {
 		return errors.New("Statters - Hammer type not found: " + *o.HammerType), nil

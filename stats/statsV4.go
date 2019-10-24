@@ -37,7 +37,9 @@ type StatsV4 struct {
 }
 
 func init() {
-	Statters["dhcpv4"] = NewStatsDhcpV4
+	if err := AddStatter("dhcpv4", NewStatsDhcpV4); err != nil {
+		panic(err)
+	}
 }
 
 func NewStatsDhcpV4(sip StatsInitParams) Stats {

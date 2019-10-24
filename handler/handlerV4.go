@@ -32,7 +32,9 @@ type HandlerDhcpV4 struct {
 }
 
 func init() {
-	Handlers["dhcpv4"] = NewDhcpV4
+	if err := AddHandler("dhcpv4", NewDhcpV4); err != nil {
+		panic(err)
+	}
 }
 
 func NewDhcpV4(hip HandlerInitParams) Handler {

@@ -122,10 +122,8 @@ func (h *Hammer) Run() error {
 	go func() {
 		var err error
 
-		for ok := true; ok; {
-			if err, ok = <-h.errorChannel; ok {
-				log.Print("ERROR: " + err.Error())
-			}
+		for err = range h.errorChannel {
+			log.Print("ERROR: " + err.Error())
 		}
 		wg.Done()
 		log.Print("INFO: Stopped error channel reader.")
@@ -168,10 +166,8 @@ func (h *Hammer) Run() error {
 	go func() {
 		var msg string
 
-		for ok := true; ok; {
-			if msg, ok = <-h.logChannel; ok {
-				log.Print("INFO: " + msg)
-			}
+		for msg = range h.logChannel {
+			log.Print("INFO: " + msg)
 		}
 		wg.Done()
 		log.Print("INFO: Stopped log channel reader.")
@@ -182,10 +178,8 @@ func (h *Hammer) Run() error {
 	go func() {
 		var msg string
 
-		for ok := true; ok; {
-			if msg, ok = <-h.statsChannel; ok {
-				log.Print(msg)
-			}
+		for msg = range h.statsChannel {
+			log.Print(msg)
 		}
 		wg.Done()
 		log.Print("INFO: Stopped stats channel reader.")

@@ -25,7 +25,17 @@ type HandlerInitParams struct {
 	statFunc    func(stats.StatValue) bool
 }
 
-var Handlers map[string]func(HandlerInitParams) Handler = make(map[string]func(HandlerInitParams) Handler)
+var handlers map[string]func(HandlerInitParams) Handler = make(map[string]func(HandlerInitParams) Handler)
+
+func AddHandler(s string, f func(HandlerInitParams) Handler) error {
+	if _, found := handlers[s]; found {
+		return errors.New("Handler type already exists: " + s)
+	}
+
+	handlers[s] = f
+
+	return nil
+}
 
 func New(o *config.Options, iface *net.Interface, logFunc func(string) bool, errFunc func(error) bool, payloadFunc func([]byte) bool, statFunc func(stats.StatValue) bool) (error, Handler) {
 	hip := HandlerInitParams{
@@ -37,7 +47,7 @@ func New(o *config.Options, iface *net.Interface, logFunc func(string) bool, err
 		statFunc:    statFunc,
 	}
 
-	hf, ok := Handlers[*o.HammerType]
+	hf, ok := handlers[*o.HammerType]
 
 	if !ok {
 		return errors.New("Handlers - Hammer type not found: " + *o.HammerType), nil
