@@ -24,7 +24,6 @@ import (
 
 /*
 	TODO:
-		Factory for generator/handler/stats based on future ipv option.
 		Option to automatically select gateway MAC from default route gateway.
 */
 
