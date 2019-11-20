@@ -1,31 +1,9 @@
 package stats
 
 import (
-	"encoding/json"
-	//"fmt"
+	"errors"
 	"github.com/ipchama/dhammer/config"
-	"sync"
-	"time"
 )
-
-type StatValue int
-
-const (
-	DiscoverSentStat = iota
-	InfoSentStat
-	RequestSentStat
-	DeclineSentStat
-	ReleaseSentStat
-
-	OfferReceivedStat
-	AckReceivedStat
-	NakReceivedStat
-
-	ArpReplySentStat
-	ArpRequestReceivedStat
-)
-
-const StatsTypeMax int = 10
 
 type Stat struct {
 	Name                string  `json:"stat_name"`
@@ -34,128 +12,47 @@ type Stat struct {
 	RatePerSecond       float64 `json:"stat_rate_per_second"`
 }
 
-type StatsV4 struct {
+type StatValue int
+
+type Stats interface {
+	AddStat(s StatValue) bool
+	Init() error
+	Run()
+	String() string
+	Stop() error
+	DeInit() error
+}
+
+type StatsInitParams struct {
 	options *config.Options
-
-	countersMux *sync.RWMutex
-	counters    [StatsTypeMax]Stat
-
-	addLog   func(string) bool
-	addError func(error) bool
-
-	statChannel chan StatValue
-	doneChannel chan struct{}
+	logFunc func(string) bool
+	errFunc func(error) bool
 }
 
-func NewV4(o *config.Options, logFunc func(string) bool, errFunc func(error) bool) *StatsV4 {
-	s := StatsV4{
-		options:     o,
-		addLog:      logFunc,
-		addError:    errFunc,
-		statChannel: make(chan StatValue, 10000),
-		doneChannel: make(chan struct{}, 1),
-		countersMux: &sync.RWMutex{},
+var statters map[string]func(StatsInitParams) Stats = make(map[string]func(StatsInitParams) Stats)
+
+func AddStatter(s string, f func(StatsInitParams) Stats) error {
+	if _, found := statters[s]; found {
+		return errors.New("Stats type already exists: " + s)
 	}
 
-	return &s
-}
-
-func (s *StatsV4) AddStat(sv StatValue) bool {
-	select {
-	case s.statChannel <- sv:
-		return true
-	default:
-	}
-	return false
-}
-
-func (s *StatsV4) Init() error {
-
-	s.counters[0].Name = "DiscoverSent"
-	s.counters[1].Name = "InfoSent"
-	s.counters[2].Name = "RequestSent"
-	s.counters[3].Name = "DeclineSent"
-	s.counters[4].Name = "ReleaseSent"
-	s.counters[5].Name = "OfferReceived"
-	s.counters[6].Name = "AckReceived"
-	s.counters[7].Name = "NakReceived"
-
-	s.counters[8].Name = "ArpReplySent"
-	s.counters[9].Name = "ArpRequestReceived"
+	statters[s] = f
 
 	return nil
 }
 
-func (s *StatsV4) DeInit() error {
-	return nil
-}
-
-func (s *StatsV4) Run() {
-
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-
-	stopTicker := make(chan struct{})
-
-	ticker := time.NewTicker(time.Duration(*s.options.StatsRate) * time.Second)
-	go func() {
-		for {
-			select {
-			case <-stopTicker:
-				ticker.Stop()
-				wg.Done()
-				return
-			case <-ticker.C:
-			}
-
-			s.calculateStats()
-			//s.addLog("\n[STATS]" + s.String())
-		}
-	}()
-
-	for sv := range s.statChannel {
-		s.countersMux.Lock()
-		s.counters[sv].Value++
-		s.countersMux.Unlock()
+func New(o *config.Options, logFunc func(string) bool, errFunc func(error) bool) (error, Stats) {
+	sip := StatsInitParams{
+		options: o,
+		logFunc: logFunc,
+		errFunc: errFunc,
 	}
 
-	stopTicker <- struct{}{}
-	wg.Wait()
+	sf, ok := statters[*o.HammerType]
 
-	close(s.doneChannel)
-}
-
-func (s *StatsV4) calculateStats() error {
-
-	var StatsTickerRate float64 = float64(*s.options.StatsRate)
-
-	s.countersMux.Lock()
-	for i := 0; i < StatsTypeMax; i++ {
-		s.counters[i].RatePerSecond = float64((s.counters[i].Value - s.counters[i].PreviousTickerValue)) / StatsTickerRate
-		s.counters[i].PreviousTickerValue = s.counters[i].Value
+	if !ok {
+		return errors.New("Statters - Hammer type not found: " + *o.HammerType), nil
 	}
-	s.countersMux.Unlock()
 
-	return nil
-}
-
-func (s *StatsV4) String() string {
-
-	s.countersMux.RLock()
-	defer s.countersMux.RUnlock()
-
-	if json, err := json.MarshalIndent(s.counters, "", "  "); err != nil {
-		s.addError(err)
-		return ""
-	} else {
-		return string(json)
-	}
-}
-
-func (s *StatsV4) Stop() error {
-	close(s.statChannel)
-	_, _ = <-s.doneChannel
-
-	return nil
+	return nil, sf(sip)
 }

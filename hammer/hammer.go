@@ -13,7 +13,7 @@ import (
 	"github.com/ipchama/dhammer/config"
 	"github.com/ipchama/dhammer/generator"
 	"github.com/ipchama/dhammer/handler"
-	"github.com/ipchama/dhammer/message"
+	//"github.com/ipchama/dhammer/message"
 	"github.com/ipchama/dhammer/socketeer"
 	"github.com/ipchama/dhammer/stats"
 
@@ -24,34 +24,8 @@ import (
 
 /*
 	TODO:
-		Factory for generator/handler/stats based on future ipv option.
 		Option to automatically select gateway MAC from default route gateway.
 */
-
-type Handler interface {
-	ReceiveMessage(m message.Message) bool
-	Init() error
-	Run()
-	Stop() error
-	DeInit() error
-}
-
-type Generator interface {
-	Init() error
-	Update(interface{}) error
-	Run()
-	Stop() error
-	DeInit() error
-}
-
-type Stats interface {
-	AddStat(s stats.StatValue) bool
-	Init() error
-	Run()
-	String() string
-	Stop() error
-	DeInit() error
-}
 
 type Hammer struct {
 	options      *config.Options
@@ -59,9 +33,9 @@ type Hammer struct {
 	statsChannel chan string
 	errorChannel chan error
 
-	handler   Handler
-	generator Generator
-	stats     Stats
+	handler   handler.Handler
+	generator generator.Generator
+	stats     stats.Stats
 	socketeer *socketeer.RawSocketeer
 
 	apiServer *httpway.Server
@@ -85,7 +59,10 @@ func (h *Hammer) Init() error {
 
 	log.SetFlags(log.LstdFlags | log.LUTC)
 
-	h.stats = stats.NewV4(h.options, h.addStats, h.addError)
+	if err, h.stats = stats.New(h.options, h.addStats, h.addError); err != nil {
+		return err
+	}
+
 	if err = h.stats.Init(); err != nil {
 		return err
 	}
@@ -95,14 +72,20 @@ func (h *Hammer) Init() error {
 		return err
 	}
 
-	h.handler = handler.NewV4(h.options, h.socketeer.IfInfo, h.addLog, h.addError, h.socketeer.AddPayload, h.stats.AddStat)
+	if err, h.handler = handler.New(h.options, h.socketeer.IfInfo, h.addLog, h.addError, h.socketeer.AddPayload, h.stats.AddStat); err != nil {
+		return err
+	}
+
 	if err := h.handler.Init(); err != nil {
 		return err
 	}
 
 	h.socketeer.SetReceiver(h.handler.ReceiveMessage)
 
-	h.generator = generator.NewV4(h.options, h.socketeer.IfInfo, h.addLog, h.addError, h.socketeer.AddPayload, h.stats.AddStat)
+	if err, h.generator = generator.New(h.options, h.socketeer.IfInfo, h.addLog, h.addError, h.socketeer.AddPayload, h.stats.AddStat); err != nil {
+		return err
+	}
+
 	if err = h.generator.Init(); err != nil {
 		return err
 	}
@@ -138,10 +121,8 @@ func (h *Hammer) Run() error {
 	go func() {
 		var err error
 
-		for ok := true; ok; {
-			if err, ok = <-h.errorChannel; ok {
-				log.Print("ERROR: " + err.Error())
-			}
+		for err = range h.errorChannel {
+			log.Print("ERROR: " + err.Error())
 		}
 		wg.Done()
 		log.Print("INFO: Stopped error channel reader.")
@@ -184,10 +165,8 @@ func (h *Hammer) Run() error {
 	go func() {
 		var msg string
 
-		for ok := true; ok; {
-			if msg, ok = <-h.logChannel; ok {
-				log.Print("INFO: " + msg)
-			}
+		for msg = range h.logChannel {
+			log.Print("INFO: " + msg)
 		}
 		wg.Done()
 		log.Print("INFO: Stopped log channel reader.")
@@ -198,10 +177,8 @@ func (h *Hammer) Run() error {
 	go func() {
 		var msg string
 
-		for ok := true; ok; {
-			if msg, ok = <-h.statsChannel; ok {
-				log.Print(msg)
-			}
+		for msg = range h.statsChannel {
+			log.Print(msg)
 		}
 		wg.Done()
 		log.Print("INFO: Stopped stats channel reader.")

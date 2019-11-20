@@ -52,4 +52,6 @@ type Options struct {
 
 	ApiPort    *int
 	ApiAddress *string
+
+	HammerType *string
 }

@@ -14,6 +14,8 @@ func main() {
 
 	options := &config.Options{}
 
+	options.HammerType = flag.String("hammer-type", "dhcpv4", "One of the possible hammer types.")
+
 	options.Handshake = flag.Bool("handshake", true, "Attempt full handshakes")
 	options.DhcpInfo = flag.Bool("info", false, "Send DHCPINFO packets. This requires a full handshake.")
 	options.DhcpBroadcast = flag.Bool("dhcp-broadcast", true, "Set the broadcast bit.")
