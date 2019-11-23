@@ -1,4 +1,6 @@
 /dhammer
+/cmd/dhammer
+/cmd/cmd
 .project
 *.pyc
 __pycache__
