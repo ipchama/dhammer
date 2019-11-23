@@ -25,6 +25,12 @@ import (
 /*
 	TODO:
 		Option to automatically select gateway MAC from default route gateway.
+
+		Socketeer needs to move to SocketeerOptions struct
+		Socket options etc should probably be moved to configSocketeer.go
+		Current config.go needs to be moved to configDhcpV4.go
+		Other *V4.go files should be moved *DhcpV4.go (i.e., move handler, generator, stats, config to use the same file naming convention.)
+		cobra cmd will just build the appropriate options struct and instantiate a hammer.
 */
 
 type Hammer struct {
