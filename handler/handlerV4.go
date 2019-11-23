@@ -19,7 +19,7 @@ type LeaseDhcpV4 struct {
 }
 
 type HandlerDhcpV4 struct {
-	options      *config.Options
+	options      *config.DhcpV4Options
 	iface        *net.Interface
 	link         netlink.Link
 	acquiredIPs  map[string]*LeaseDhcpV4
@@ -40,7 +40,7 @@ func init() {
 func NewDhcpV4(hip HandlerInitParams) Handler {
 
 	h := HandlerDhcpV4{
-		options:      hip.options,
+		options:      hip.options.(*config.DhcpV4Options),
 		iface:        hip.iface,
 		acquiredIPs:  make(map[string]*LeaseDhcpV4),
 		addLog:       hip.logFunc,

@@ -16,7 +16,7 @@ type Generator interface {
 }
 
 type GeneratorInitParams struct {
-	options     *config.Options
+	options     config.HammerConfig
 	iface       *net.Interface
 	logFunc     func(string) bool
 	errFunc     func(error) bool
@@ -36,7 +36,7 @@ func AddGenerator(s string, f func(GeneratorInitParams) Generator) error {
 	return nil
 }
 
-func New(o *config.Options, iface *net.Interface, logFunc func(string) bool, errFunc func(error) bool, payloadFunc func([]byte) bool, statFunc func(stats.StatValue) bool) (error, Generator) {
+func New(o config.HammerConfig, iface *net.Interface, logFunc func(string) bool, errFunc func(error) bool, payloadFunc func([]byte) bool, statFunc func(stats.StatValue) bool) (error, Generator) {
 
 	gip := GeneratorInitParams{
 		options:     o,
@@ -47,10 +47,10 @@ func New(o *config.Options, iface *net.Interface, logFunc func(string) bool, err
 		statFunc:    statFunc,
 	}
 
-	gf, ok := generators[*o.HammerType]
+	gf, ok := generators[o.HammerType()]
 
 	if !ok {
-		return errors.New("Generators - Hammer type not found: " + *o.HammerType), nil
+		return errors.New("Generators - Hammer type not found: " + o.HammerType()), nil
 	}
 
 	return nil, gf(gip)

@@ -16,7 +16,7 @@ import (
 )
 
 type GeneratorV4 struct {
-	options       *config.Options
+	options       *config.DhcpV4Options
 	iface         *net.Interface
 	addLog        func(string) bool
 	addError      func(error) bool
@@ -36,7 +36,7 @@ func init() {
 func NewDhcpV4(gip GeneratorInitParams) Generator {
 
 	g := GeneratorV4{
-		options:       gip.options,
+		options:       gip.options.(*config.DhcpV4Options),
 		iface:         gip.iface,
 		addLog:        gip.logFunc,
 		addError:      gip.errFunc,

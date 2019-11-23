@@ -16,7 +16,7 @@ type RawSocketeer struct {
 	IfInfo        *net.Interface
 	outputChannel chan []byte
 
-	options *config.Options
+	options *config.DhcpV4Options
 
 	addLog   func(string) bool
 	addError func(error) bool
@@ -27,9 +27,10 @@ type RawSocketeer struct {
 	doneChannel   chan struct{}
 }
 
-func NewRawSocketeer(o *config.Options, logFunc func(string) bool, errFunc func(error) bool) *RawSocketeer {
+func NewRawSocketeer(o config.HammerConfig, logFunc func(string) bool, errFunc func(error) bool) *RawSocketeer {
+
 	s := RawSocketeer{
-		options:       o,
+		options:       o.(*config.DhcpV4Options),
 		addLog:        logFunc,
 		addError:      errFunc,
 		outputChannel: make(chan []byte),

@@ -5,6 +5,10 @@ import (
 	"net"
 )
 
+type HammerConfig interface {
+	HammerType() string
+}
+
 type FlagArrayString []string
 
 func (a *FlagArrayString) String() string {
@@ -20,7 +24,7 @@ func (a *FlagArrayString) Len() int {
 	return len([]string(*a))
 }
 
-type Options struct {
+type DhcpV4Options struct {
 	Handshake         *bool
 	DhcpInfo          *bool
 	EthernetBroadcast *bool
@@ -49,9 +53,8 @@ type Options struct {
 	InterfaceName   *string
 	GatewayMAC      net.HardwareAddr
 	PromiscuousMode *bool
+}
 
-	ApiPort    *int
-	ApiAddress *string
-
-	HammerType *string
+func (o *DhcpV4Options) HammerType() string {
+	return "dhcpv4"
 }

@@ -28,7 +28,7 @@ import (
 */
 
 type Hammer struct {
-	options      *config.Options
+	options      config.HammerConfig
 	logChannel   chan string
 	statsChannel chan string
 	errorChannel chan error
@@ -41,7 +41,7 @@ type Hammer struct {
 	apiServer *httpway.Server
 }
 
-func New(o *config.Options) *Hammer {
+func New(o config.HammerConfig) *Hammer {
 
 	h := Hammer{
 		options:      o,
@@ -53,7 +53,7 @@ func New(o *config.Options) *Hammer {
 	return &h
 }
 
-func (h *Hammer) Init() error {
+func (h *Hammer) Init(apiAddr string, apiPort int) error {
 
 	var err error
 
@@ -89,6 +89,8 @@ func (h *Hammer) Init() error {
 	if err = h.generator.Init(); err != nil {
 		return err
 	}
+
+	h.initApiServer(apiAddr, apiPort)
 
 	return nil
 }
@@ -312,7 +314,7 @@ func (h *Hammer) updateHandler(response http.ResponseWriter, request *http.Reque
 	fmt.Fprintf(response, "{\"status\": \"ok\"}")
 }
 
-func (h *Hammer) startApiServer() {
+func (h *Hammer) initApiServer(apiAddr string, apiPort int) {
 	r := httprouter.New()
 	r.GET("/stats",
 		func(response http.ResponseWriter, request *http.Request, ps httprouter.Params) {
@@ -326,8 +328,10 @@ func (h *Hammer) startApiServer() {
 
 	h.apiServer = httpway.NewServer(nil)
 	h.apiServer.Handler = handlers.LoggingHandler(os.Stdout, r)
-	h.apiServer.Addr = fmt.Sprintf("%s:%d", *h.options.ApiAddress, *h.options.ApiPort)
+	h.apiServer.Addr = fmt.Sprintf("%s:%d", apiAddr, apiPort)
+}
 
+func (h *Hammer) startApiServer() {
 	if err := h.apiServer.Start(); err != nil {
 		h.addError(err)
 	}

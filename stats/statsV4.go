@@ -24,7 +24,7 @@ const (
 )
 
 type StatsV4 struct {
-	options *config.Options
+	options *config.DhcpV4Options
 
 	countersMux *sync.RWMutex
 	counters    [10]Stat
@@ -44,7 +44,7 @@ func init() {
 
 func NewStatsDhcpV4(sip StatsInitParams) Stats {
 	s := StatsV4{
-		options:     sip.options,
+		options:     sip.options.(*config.DhcpV4Options),
 		addLog:      sip.logFunc,
 		addError:    sip.errFunc,
 		statChannel: make(chan StatValue, 10000),

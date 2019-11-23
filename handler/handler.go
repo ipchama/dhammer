@@ -17,7 +17,7 @@ type Handler interface {
 }
 
 type HandlerInitParams struct {
-	options     *config.Options
+	options     config.HammerConfig
 	iface       *net.Interface
 	logFunc     func(string) bool
 	errFunc     func(error) bool
@@ -37,7 +37,7 @@ func AddHandler(s string, f func(HandlerInitParams) Handler) error {
 	return nil
 }
 
-func New(o *config.Options, iface *net.Interface, logFunc func(string) bool, errFunc func(error) bool, payloadFunc func([]byte) bool, statFunc func(stats.StatValue) bool) (error, Handler) {
+func New(o config.HammerConfig, iface *net.Interface, logFunc func(string) bool, errFunc func(error) bool, payloadFunc func([]byte) bool, statFunc func(stats.StatValue) bool) (error, Handler) {
 	hip := HandlerInitParams{
 		options:     o,
 		iface:       iface,
@@ -47,10 +47,10 @@ func New(o *config.Options, iface *net.Interface, logFunc func(string) bool, err
 		statFunc:    statFunc,
 	}
 
-	hf, ok := handlers[*o.HammerType]
+	hf, ok := handlers[o.HammerType()]
 
 	if !ok {
-		return errors.New("Handlers - Hammer type not found: " + *o.HammerType), nil
+		return errors.New("Handlers - Hammer type not found: " + o.HammerType()), nil
 	}
 
 	return nil, hf(hip)
