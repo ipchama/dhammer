@@ -5,6 +5,7 @@ import (
 	"github.com/google/gopacket/layers"
 	"github.com/ipchama/dhammer/config"
 	"github.com/ipchama/dhammer/message"
+	"github.com/ipchama/dhammer/socketeer"
 	"github.com/ipchama/dhammer/stats"
 	"github.com/vishvananda/netlink"
 	"net"
@@ -20,6 +21,7 @@ type LeaseDhcpV4 struct {
 
 type HandlerDhcpV4 struct {
 	options      *config.DhcpV4Options
+	socketeer    *socketeer.RawSocketeer
 	iface        *net.Interface
 	link         netlink.Link
 	acquiredIPs  map[string]*LeaseDhcpV4
@@ -41,11 +43,12 @@ func NewDhcpV4(hip HandlerInitParams) Handler {
 
 	h := HandlerDhcpV4{
 		options:      hip.options.(*config.DhcpV4Options),
-		iface:        hip.iface,
+		socketeer:    hip.socketeer,
+		iface:        hip.socketeer.IfInfo,
 		acquiredIPs:  make(map[string]*LeaseDhcpV4),
 		addLog:       hip.logFunc,
 		addError:     hip.errFunc,
-		sendPayload:  hip.payloadFunc,
+		sendPayload:  hip.socketeer.AddPayload,
 		addStat:      hip.statFunc,
 		inputChannel: make(chan message.Message, 10000),
 		doneChannel:  make(chan struct{}),
@@ -99,6 +102,8 @@ func (h *HandlerDhcpV4) Run() {
 	var msg message.Message
 	var dhcpReply *layers.DHCPv4
 
+	socketeerOptions := h.socketeer.Options()
+
 	ethernetLayer := &layers.Ethernet{
 		DstMAC:       layers.EthernetBroadcast,
 		SrcMAC:       h.iface.HardwareAddr,
@@ -107,7 +112,7 @@ func (h *HandlerDhcpV4) Run() {
 	}
 
 	if !*h.options.EthernetBroadcast {
-		ethernetLayer.DstMAC = h.options.GatewayMAC
+		ethernetLayer.DstMAC = socketeerOptions.GatewayMAC
 	}
 
 	ipLayer := &layers.IPv4{
@@ -139,7 +144,7 @@ func (h *HandlerDhcpV4) Run() {
 		ipLayer.DstIP = h.options.RelayTargetServerIP
 
 		ethernetLayer.SrcMAC = h.iface.HardwareAddr
-		ethernetLayer.DstMAC = h.options.GatewayMAC
+		ethernetLayer.DstMAC = socketeerOptions.GatewayMAC
 
 		outDhcpLayer.RelayAgentIP = h.options.RelayGatewayIP
 		udpLayer.SrcPort = 67

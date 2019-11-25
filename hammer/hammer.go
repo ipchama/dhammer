@@ -25,19 +25,21 @@ import (
 /*
 	TODO:
 		Option to automatically select gateway MAC from default route gateway.
+		Option structs should stop being references.
 
-		Socketeer needs to move to SocketeerOptions struct
 		Socket options etc should probably be moved to configSocketeer.go
 		Current config.go needs to be moved to configDhcpV4.go
 		Other *V4.go files should be moved *DhcpV4.go (i.e., move handler, generator, stats, config to use the same file naming convention.)
 		cobra cmd will just build the appropriate options struct and instantiate a hammer.
+
 */
 
 type Hammer struct {
-	options      config.HammerConfig
-	logChannel   chan string
-	statsChannel chan string
-	errorChannel chan error
+	options          config.HammerConfig
+	socketeerOptions *config.SocketeerOptions
+	logChannel       chan string
+	statsChannel     chan string
+	errorChannel     chan error
 
 	handler   handler.Handler
 	generator generator.Generator
@@ -47,13 +49,14 @@ type Hammer struct {
 	apiServer *httpway.Server
 }
 
-func New(o config.HammerConfig) *Hammer {
+func New(s *config.SocketeerOptions, o config.HammerConfig) *Hammer {
 
 	h := Hammer{
-		options:      o,
-		logChannel:   make(chan string, 1000),
-		statsChannel: make(chan string, 1000),
-		errorChannel: make(chan error, 1000),
+		socketeerOptions: s,
+		options:          o,
+		logChannel:       make(chan string, 1000),
+		statsChannel:     make(chan string, 1000),
+		errorChannel:     make(chan error, 1000),
 	}
 
 	return &h
@@ -73,12 +76,12 @@ func (h *Hammer) Init(apiAddr string, apiPort int) error {
 		return err
 	}
 
-	h.socketeer = socketeer.NewRawSocketeer(h.options, h.addLog, h.addError)
+	h.socketeer = socketeer.NewRawSocketeer(h.socketeerOptions, h.addLog, h.addError)
 	if err = h.socketeer.Init(); err != nil {
 		return err
 	}
 
-	if err, h.handler = handler.New(h.options, h.socketeer.IfInfo, h.addLog, h.addError, h.socketeer.AddPayload, h.stats.AddStat); err != nil {
+	if err, h.handler = handler.New(h.socketeer, h.options, h.addLog, h.addError, h.stats.AddStat); err != nil {
 		return err
 	}
 
@@ -88,7 +91,7 @@ func (h *Hammer) Init(apiAddr string, apiPort int) error {
 
 	h.socketeer.SetReceiver(h.handler.ReceiveMessage)
 
-	if err, h.generator = generator.New(h.options, h.socketeer.IfInfo, h.addLog, h.addError, h.socketeer.AddPayload, h.stats.AddStat); err != nil {
+	if err, h.generator = generator.New(h.socketeer, h.options, h.addLog, h.addError, h.stats.AddStat); err != nil {
 		return err
 	}
 

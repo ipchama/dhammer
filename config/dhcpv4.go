@@ -5,10 +5,6 @@ import (
 	"net"
 )
 
-type HammerConfig interface {
-	HammerType() string
-}
-
 type FlagArrayString []string
 
 func (a *FlagArrayString) String() string {
@@ -49,10 +45,6 @@ type DhcpV4Options struct {
 	MacCount          *int
 
 	StatsRate *int
-
-	InterfaceName   *string
-	GatewayMAC      net.HardwareAddr
-	PromiscuousMode *bool
 }
 
 func (o *DhcpV4Options) HammerType() string {

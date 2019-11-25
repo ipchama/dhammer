@@ -6,6 +6,7 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/ipchama/dhammer/config"
+	"github.com/ipchama/dhammer/socketeer"
 	"github.com/ipchama/dhammer/stats"
 	"math/rand"
 	"net"
@@ -17,6 +18,7 @@ import (
 
 type GeneratorV4 struct {
 	options       *config.DhcpV4Options
+	socketeer     *socketeer.RawSocketeer
 	iface         *net.Interface
 	addLog        func(string) bool
 	addError      func(error) bool
@@ -37,10 +39,11 @@ func NewDhcpV4(gip GeneratorInitParams) Generator {
 
 	g := GeneratorV4{
 		options:       gip.options.(*config.DhcpV4Options),
-		iface:         gip.iface,
+		socketeer:     gip.socketeer,
+		iface:         gip.socketeer.IfInfo,
 		addLog:        gip.logFunc,
 		addError:      gip.errFunc,
-		sendPayload:   gip.payloadFunc,
+		sendPayload:   gip.socketeer.AddPayload,
 		addStat:       gip.statFunc,
 		finishChannel: make(chan struct{}, 1),
 		doneChannel:   make(chan struct{}),
@@ -81,6 +84,8 @@ func (g *GeneratorV4) Run() {
 	macs := g.generateMacList()
 	nS := rand.NewSource(time.Now().Unix())
 	nRand := rand.New(nS)
+
+	socketeerOptions := g.socketeer.Options()
 
 	opts := gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}
 
@@ -139,7 +144,7 @@ func (g *GeneratorV4) Run() {
 	}
 
 	if !*g.options.EthernetBroadcast {
-		ethernetLayer.DstMAC = g.options.GatewayMAC
+		ethernetLayer.DstMAC = socketeerOptions.GatewayMAC
 	}
 
 	ipLayer := &layers.IPv4{
@@ -160,7 +165,7 @@ func (g *GeneratorV4) Run() {
 		ipLayer.DstIP = g.options.RelayTargetServerIP
 
 		ethernetLayer.SrcMAC = g.iface.HardwareAddr
-		ethernetLayer.DstMAC = g.options.GatewayMAC
+		ethernetLayer.DstMAC = socketeerOptions.GatewayMAC
 
 		outDhcpLayer.RelayAgentIP = g.options.RelayGatewayIP
 

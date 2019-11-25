@@ -13,6 +13,7 @@ import (
 func main() {
 
 	options := &config.DhcpV4Options{}
+	socketeerOptions := &config.SocketeerOptions{}
 
 	_ = flag.String("hammer-type", "dhcpv4", "One of the possible hammer types.")
 
@@ -41,9 +42,9 @@ func main() {
 
 	flag.Var(&options.AdditionalDhcpOptions, "dhcp-option", "Additional DHCP option to send out in the discover. Can be used multiple times. Format: <option num>:<RFC4648-base64-encoded-value>")
 
-	options.InterfaceName = flag.String("interface", "eth0", "Interface name for listening and sending.")
+	socketeerOptions.InterfaceName = flag.String("interface", "eth0", "Interface name for listening and sending.")
 	gatewayMAC := flag.String("gateway-mac", "de:ad:be:ef:f0:0d", "MAC of the gateway.")
-	options.PromiscuousMode = flag.Bool("promisc", false, "Turn on promiscuous mode for the listening interface.")
+	socketeerOptions.PromiscuousMode = flag.Bool("promisc", false, "Turn on promiscuous mode for the listening interface.")
 
 	ApiAddress := flag.String("api-address", "", "IP for the API server to listen on.")
 	ApiPort := flag.Int("api-port", 8080, "Port for the API server to listen on.")
@@ -64,7 +65,8 @@ func main() {
 		options.DhcpRelay = true
 	}
 
-	options.GatewayMAC, err = net.ParseMAC(*gatewayMAC)
+	socketeerOptions.GatewayMAC, err = net.ParseMAC(*gatewayMAC)
+
 	if *options.StatsRate <= 0 {
 		*options.StatsRate = 5
 	}
@@ -73,7 +75,8 @@ func main() {
 		panic(err)
 	}
 
-	Hammer := hammer.New(options)
+	Hammer := hammer.New(socketeerOptions, options)
+
 	err = Hammer.Init(*ApiAddress, *ApiPort)
 
 	if err != nil {

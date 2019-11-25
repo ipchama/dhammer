@@ -4,8 +4,8 @@ import (
 	"errors"
 	"github.com/ipchama/dhammer/config"
 	"github.com/ipchama/dhammer/message"
+	"github.com/ipchama/dhammer/socketeer"
 	"github.com/ipchama/dhammer/stats"
-	"net"
 )
 
 type Handler interface {
@@ -17,12 +17,11 @@ type Handler interface {
 }
 
 type HandlerInitParams struct {
-	options     config.HammerConfig
-	iface       *net.Interface
-	logFunc     func(string) bool
-	errFunc     func(error) bool
-	payloadFunc func([]byte) bool
-	statFunc    func(stats.StatValue) bool
+	options   config.HammerConfig
+	socketeer *socketeer.RawSocketeer
+	logFunc   func(string) bool
+	errFunc   func(error) bool
+	statFunc  func(stats.StatValue) bool
 }
 
 var handlers map[string]func(HandlerInitParams) Handler = make(map[string]func(HandlerInitParams) Handler)
@@ -37,14 +36,13 @@ func AddHandler(s string, f func(HandlerInitParams) Handler) error {
 	return nil
 }
 
-func New(o config.HammerConfig, iface *net.Interface, logFunc func(string) bool, errFunc func(error) bool, payloadFunc func([]byte) bool, statFunc func(stats.StatValue) bool) (error, Handler) {
+func New(s *socketeer.RawSocketeer, o config.HammerConfig, logFunc func(string) bool, errFunc func(error) bool, statFunc func(stats.StatValue) bool) (error, Handler) {
 	hip := HandlerInitParams{
-		options:     o,
-		iface:       iface,
-		logFunc:     logFunc,
-		errFunc:     errFunc,
-		payloadFunc: payloadFunc,
-		statFunc:    statFunc,
+		options:   o,
+		socketeer: s,
+		logFunc:   logFunc,
+		errFunc:   errFunc,
+		statFunc:  statFunc,
 	}
 
 	hf, ok := handlers[o.HammerType()]

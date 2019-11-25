@@ -3,8 +3,8 @@ package generator
 import (
 	"errors"
 	"github.com/ipchama/dhammer/config"
+	"github.com/ipchama/dhammer/socketeer"
 	"github.com/ipchama/dhammer/stats"
-	"net"
 )
 
 type Generator interface {
@@ -16,12 +16,11 @@ type Generator interface {
 }
 
 type GeneratorInitParams struct {
-	options     config.HammerConfig
-	iface       *net.Interface
-	logFunc     func(string) bool
-	errFunc     func(error) bool
-	payloadFunc func([]byte) bool
-	statFunc    func(stats.StatValue) bool
+	socketeer *socketeer.RawSocketeer
+	options   config.HammerConfig
+	logFunc   func(string) bool
+	errFunc   func(error) bool
+	statFunc  func(stats.StatValue) bool
 }
 
 var generators map[string]func(GeneratorInitParams) Generator = make(map[string]func(GeneratorInitParams) Generator)
@@ -36,15 +35,14 @@ func AddGenerator(s string, f func(GeneratorInitParams) Generator) error {
 	return nil
 }
 
-func New(o config.HammerConfig, iface *net.Interface, logFunc func(string) bool, errFunc func(error) bool, payloadFunc func([]byte) bool, statFunc func(stats.StatValue) bool) (error, Generator) {
+func New(s *socketeer.RawSocketeer, o config.HammerConfig, logFunc func(string) bool, errFunc func(error) bool, statFunc func(stats.StatValue) bool) (error, Generator) {
 
 	gip := GeneratorInitParams{
-		options:     o,
-		iface:       iface,
-		logFunc:     logFunc,
-		errFunc:     errFunc,
-		payloadFunc: payloadFunc,
-		statFunc:    statFunc,
+		socketeer: s,
+		options:   o,
+		logFunc:   logFunc,
+		errFunc:   errFunc,
+		statFunc:  statFunc,
 	}
 
 	gf, ok := generators[o.HammerType()]
