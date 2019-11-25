@@ -27,10 +27,8 @@ import (
 		Option to automatically select gateway MAC from default route gateway.
 		Option structs should stop being references.
 
-		Socket options etc should probably be moved to configSocketeer.go
-		Current config.go needs to be moved to configDhcpV4.go
-		Other *V4.go files should be moved *DhcpV4.go (i.e., move handler, generator, stats, config to use the same file naming convention.)
 		cobra cmd will just build the appropriate options struct and instantiate a hammer.
+		The current junk in main.go should be moved to cobra.  Including the signal handler seems fine: maybe sommands won't need it.
 
 */
 
