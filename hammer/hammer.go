@@ -13,7 +13,6 @@ import (
 	"github.com/ipchama/dhammer/config"
 	"github.com/ipchama/dhammer/generator"
 	"github.com/ipchama/dhammer/handler"
-	//"github.com/ipchama/dhammer/message"
 	"github.com/ipchama/dhammer/socketeer"
 	"github.com/ipchama/dhammer/stats"
 
