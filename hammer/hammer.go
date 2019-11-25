@@ -29,6 +29,7 @@ import (
 
 		cobra cmd will just build the appropriate options struct and instantiate a hammer.
 		The current junk in main.go should be moved to cobra.  Including the signal handler seems fine: maybe sommands won't need it.
+		Then main.go will into the typical bare-bones cobra main.go.
 
 */
 
