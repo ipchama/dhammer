@@ -13,7 +13,6 @@ import (
 	"github.com/ipchama/dhammer/config"
 	"github.com/ipchama/dhammer/generator"
 	"github.com/ipchama/dhammer/handler"
-	//"github.com/ipchama/dhammer/message"
 	"github.com/ipchama/dhammer/socketeer"
 	"github.com/ipchama/dhammer/stats"
 
@@ -25,13 +24,15 @@ import (
 /*
 	TODO:
 		Option to automatically select gateway MAC from default route gateway.
+		Option structs should stop being references.
 */
 
 type Hammer struct {
-	options      *config.Options
-	logChannel   chan string
-	statsChannel chan string
-	errorChannel chan error
+	options          config.HammerConfig
+	socketeerOptions *config.SocketeerOptions
+	logChannel       chan string
+	statsChannel     chan string
+	errorChannel     chan error
 
 	handler   handler.Handler
 	generator generator.Generator
@@ -41,19 +42,20 @@ type Hammer struct {
 	apiServer *httpway.Server
 }
 
-func New(o *config.Options) *Hammer {
+func New(s *config.SocketeerOptions, o config.HammerConfig) *Hammer {
 
 	h := Hammer{
-		options:      o,
-		logChannel:   make(chan string, 1000),
-		statsChannel: make(chan string, 1000),
-		errorChannel: make(chan error, 1000),
+		socketeerOptions: s,
+		options:          o,
+		logChannel:       make(chan string, 1000),
+		statsChannel:     make(chan string, 1000),
+		errorChannel:     make(chan error, 1000),
 	}
 
 	return &h
 }
 
-func (h *Hammer) Init() error {
+func (h *Hammer) Init(apiAddr string, apiPort int) error {
 
 	var err error
 
@@ -67,12 +69,12 @@ func (h *Hammer) Init() error {
 		return err
 	}
 
-	h.socketeer = socketeer.NewRawSocketeer(h.options, h.addLog, h.addError)
+	h.socketeer = socketeer.NewRawSocketeer(h.socketeerOptions, h.addLog, h.addError)
 	if err = h.socketeer.Init(); err != nil {
 		return err
 	}
 
-	if err, h.handler = handler.New(h.options, h.socketeer.IfInfo, h.addLog, h.addError, h.socketeer.AddPayload, h.stats.AddStat); err != nil {
+	if err, h.handler = handler.New(h.socketeer, h.options, h.addLog, h.addError, h.stats.AddStat); err != nil {
 		return err
 	}
 
@@ -82,13 +84,15 @@ func (h *Hammer) Init() error {
 
 	h.socketeer.SetReceiver(h.handler.ReceiveMessage)
 
-	if err, h.generator = generator.New(h.options, h.socketeer.IfInfo, h.addLog, h.addError, h.socketeer.AddPayload, h.stats.AddStat); err != nil {
+	if err, h.generator = generator.New(h.socketeer, h.options, h.addLog, h.addError, h.stats.AddStat); err != nil {
 		return err
 	}
 
 	if err = h.generator.Init(); err != nil {
 		return err
 	}
+
+	h.initApiServer(apiAddr, apiPort)
 
 	return nil
 }
@@ -312,7 +316,7 @@ func (h *Hammer) updateHandler(response http.ResponseWriter, request *http.Reque
 	fmt.Fprintf(response, "{\"status\": \"ok\"}")
 }
 
-func (h *Hammer) startApiServer() {
+func (h *Hammer) initApiServer(apiAddr string, apiPort int) {
 	r := httprouter.New()
 	r.GET("/stats",
 		func(response http.ResponseWriter, request *http.Request, ps httprouter.Params) {
@@ -326,8 +330,10 @@ func (h *Hammer) startApiServer() {
 
 	h.apiServer = httpway.NewServer(nil)
 	h.apiServer.Handler = handlers.LoggingHandler(os.Stdout, r)
-	h.apiServer.Addr = fmt.Sprintf("%s:%d", *h.options.ApiAddress, *h.options.ApiPort)
+	h.apiServer.Addr = fmt.Sprintf("%s:%d", apiAddr, apiPort)
+}
 
+func (h *Hammer) startApiServer() {
 	if err := h.apiServer.Start(); err != nil {
 		h.addError(err)
 	}

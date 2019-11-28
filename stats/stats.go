@@ -24,7 +24,7 @@ type Stats interface {
 }
 
 type StatsInitParams struct {
-	options *config.Options
+	options config.HammerConfig
 	logFunc func(string) bool
 	errFunc func(error) bool
 }
@@ -41,17 +41,17 @@ func AddStatter(s string, f func(StatsInitParams) Stats) error {
 	return nil
 }
 
-func New(o *config.Options, logFunc func(string) bool, errFunc func(error) bool) (error, Stats) {
+func New(o config.HammerConfig, logFunc func(string) bool, errFunc func(error) bool) (error, Stats) {
 	sip := StatsInitParams{
 		options: o,
 		logFunc: logFunc,
 		errFunc: errFunc,
 	}
 
-	sf, ok := statters[*o.HammerType]
+	sf, ok := statters[o.HammerType()]
 
 	if !ok {
-		return errors.New("Statters - Hammer type not found: " + *o.HammerType), nil
+		return errors.New("Statters - Hammer type not found: " + o.HammerType()), nil
 	}
 
 	return nil, sf(sip)

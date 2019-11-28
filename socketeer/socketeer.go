@@ -16,7 +16,7 @@ type RawSocketeer struct {
 	IfInfo        *net.Interface
 	outputChannel chan []byte
 
-	options *config.Options
+	options *config.SocketeerOptions
 
 	addLog   func(string) bool
 	addError func(error) bool
@@ -27,7 +27,8 @@ type RawSocketeer struct {
 	doneChannel   chan struct{}
 }
 
-func NewRawSocketeer(o *config.Options, logFunc func(string) bool, errFunc func(error) bool) *RawSocketeer {
+func NewRawSocketeer(o *config.SocketeerOptions, logFunc func(string) bool, errFunc func(error) bool) *RawSocketeer {
+
 	s := RawSocketeer{
 		options:       o,
 		addLog:        logFunc,
@@ -44,6 +45,11 @@ func (s *RawSocketeer) SetReceiver(receiverFunc func(msg message.Message) bool) 
 	s.handleMessage = receiverFunc
 }
 
+func (s *RawSocketeer) Options() config.SocketeerOptions {
+
+	return *s.options // Wishful thinking... The struct holds pointers anyway.  Decide how to deal with this later.
+}
+
 func (s *RawSocketeer) Init() error {
 	var err error
 
@@ -51,7 +57,7 @@ func (s *RawSocketeer) Init() error {
 		return err
 	}
 
-	s.IfInfo, err = net.InterfaceByName(*s.options.InterfaceName)
+	s.IfInfo, err = net.InterfaceByName(s.options.InterfaceName)
 
 	if err != nil {
 		return err
@@ -74,8 +80,8 @@ func (s *RawSocketeer) Init() error {
 		return err
 	}
 
-	if *s.options.PromiscuousMode {
-		if err = syscall.SetLsfPromisc(*s.options.InterfaceName, true); err != nil {
+	if s.options.PromiscuousMode {
+		if err = syscall.SetLsfPromisc(s.options.InterfaceName, true); err != nil {
 			return err
 		}
 	}
@@ -85,8 +91,8 @@ func (s *RawSocketeer) Init() error {
 
 func (s *RawSocketeer) DeInit() error {
 
-	if *s.options.PromiscuousMode {
-		if err := syscall.SetLsfPromisc(*s.options.InterfaceName, false); err != nil {
+	if s.options.PromiscuousMode {
+		if err := syscall.SetLsfPromisc(s.options.InterfaceName, false); err != nil {
 			return err
 		}
 	}

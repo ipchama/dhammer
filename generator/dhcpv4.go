@@ -6,6 +6,7 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/ipchama/dhammer/config"
+	"github.com/ipchama/dhammer/socketeer"
 	"github.com/ipchama/dhammer/stats"
 	"math/rand"
 	"net"
@@ -16,7 +17,8 @@ import (
 )
 
 type GeneratorV4 struct {
-	options       *config.Options
+	options       *config.DhcpV4Options
+	socketeer     *socketeer.RawSocketeer
 	iface         *net.Interface
 	addLog        func(string) bool
 	addError      func(error) bool
@@ -36,11 +38,12 @@ func init() {
 func NewDhcpV4(gip GeneratorInitParams) Generator {
 
 	g := GeneratorV4{
-		options:       gip.options,
-		iface:         gip.iface,
+		options:       gip.options.(*config.DhcpV4Options),
+		socketeer:     gip.socketeer,
+		iface:         gip.socketeer.IfInfo,
 		addLog:        gip.logFunc,
 		addError:      gip.errFunc,
-		sendPayload:   gip.payloadFunc,
+		sendPayload:   gip.socketeer.AddPayload,
 		addStat:       gip.statFunc,
 		finishChannel: make(chan struct{}, 1),
 		doneChannel:   make(chan struct{}),
@@ -82,6 +85,8 @@ func (g *GeneratorV4) Run() {
 	nS := rand.NewSource(time.Now().Unix())
 	nRand := rand.New(nS)
 
+	socketeerOptions := g.socketeer.Options()
+
 	opts := gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}
 
 	outDhcpLayer := &layers.DHCPv4{
@@ -92,12 +97,12 @@ func (g *GeneratorV4) Run() {
 		Flags: 0x8000, // Broadcast
 	}
 
-	if !*g.options.DhcpBroadcast {
+	if !g.options.DhcpBroadcast {
 		outDhcpLayer.Flags = 0x0
 	}
 
 	baseOptionCount := 2
-	additionalOptionCount := g.options.AdditionalDhcpOptions.Len()
+	additionalOptionCount := len(g.options.AdditionalDhcpOptions)
 
 	outDhcpLayer.Options = make(layers.DHCPOptions, baseOptionCount+additionalOptionCount+1) // +1 for DHCPOptEnd
 
@@ -138,8 +143,8 @@ func (g *GeneratorV4) Run() {
 		Length:       0,
 	}
 
-	if !*g.options.EthernetBroadcast {
-		ethernetLayer.DstMAC = g.options.GatewayMAC
+	if !g.options.EthernetBroadcast {
+		ethernetLayer.DstMAC = socketeerOptions.GatewayMAC
 	}
 
 	ipLayer := &layers.IPv4{
@@ -152,7 +157,7 @@ func (g *GeneratorV4) Run() {
 
 	udpLayer := &layers.UDP{
 		SrcPort: layers.UDPPort(68),
-		DstPort: layers.UDPPort(*g.options.TargetPort),
+		DstPort: layers.UDPPort(g.options.TargetPort),
 	}
 
 	if g.options.DhcpRelay {
@@ -160,7 +165,7 @@ func (g *GeneratorV4) Run() {
 		ipLayer.DstIP = g.options.RelayTargetServerIP
 
 		ethernetLayer.SrcMAC = g.iface.HardwareAddr
-		ethernetLayer.DstMAC = g.options.GatewayMAC
+		ethernetLayer.DstMAC = socketeerOptions.GatewayMAC
 
 		outDhcpLayer.RelayAgentIP = g.options.RelayGatewayIP
 
@@ -174,7 +179,7 @@ func (g *GeneratorV4) Run() {
 	start := time.Now()
 	time.Sleep(1)
 
-	mRps := *g.options.RequestsPerSecond
+	mRps := g.options.RequestsPerSecond
 
 	var t time.Time
 	var elapsed float64
@@ -182,7 +187,7 @@ func (g *GeneratorV4) Run() {
 
 	g.addLog("Finished generating MACs and preparing packet headers.")
 
-	for *g.options.MaxLifetime == 0 || int(elapsed) <= *g.options.MaxLifetime {
+	for g.options.MaxLifetime == 0 || int(elapsed) <= g.options.MaxLifetime {
 
 		select {
 		case _, _ = <-g.finishChannel:
@@ -241,7 +246,7 @@ func (g *GeneratorV4) generateMacList() []net.HardwareAddr {
 	nRand := rand.New(nS)
 
 	macs := make([]net.HardwareAddr, 0)
-	for i := 0; i < *g.options.MacCount; i++ {
+	for i := 0; i < g.options.MacCount; i++ {
 		// Have to play bit-shift games to make sure the first bit in the first octet (broadcast bit) in the MAC is 0 or this will look like a multicast address.
 		// Technically, should also be setting the second bit, but things will work either way.
 		if mac, err := net.ParseMAC(fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", nRand.Intn(256)&(^(1 << 8)), nRand.Intn(256), nRand.Intn(256), nRand.Intn(256), nRand.Intn(256), nRand.Intn(256))); err == nil {
