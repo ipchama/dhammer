@@ -5,9 +5,6 @@ import (
 	"github.com/ipchama/dhammer/hammer"
 	"github.com/spf13/cobra"
 	"net"
-	"os"
-	"os/signal"
-	"syscall"
 )
 
 func prepareCmd(cmd *cobra.Command) *cobra.Command {
@@ -119,23 +116,14 @@ func init() {
 				options.StatsRate = 5
 			}
 
-			Hammer := hammer.New(socketeerOptions, options)
+			gHammer = hammer.New(socketeerOptions, options)
 
-			err = Hammer.Init(ApiAddress, ApiPort)
+			err = gHammer.Init(ApiAddress, ApiPort)
 
 			if err != nil {
 				panic(err)
 			}
-
-			osSigChann := make(chan os.Signal)
-			signal.Notify(osSigChann, syscall.SIGINT, syscall.SIGTERM)
-
-			go func() {
-				_ = <-osSigChann
-				Hammer.Stop()
-			}()
-
-			err = Hammer.Run()
+			err = gHammer.Run()
 
 			if err != nil {
 				panic(err)
