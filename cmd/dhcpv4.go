@@ -46,6 +46,14 @@ func prepareCmd(cmd *cobra.Command) *cobra.Command {
 	return cmd
 }
 
+func getVal(i interface{}, err error) interface{} {
+	if err != nil {
+		panic(err)
+	}
+
+	return i
+}
+
 func init() {
 
 	rootCmd.AddCommand(prepareCmd(&cobra.Command{
@@ -59,37 +67,36 @@ func init() {
 
 			var err error
 
-			options.Handshake, err = cmd.Flags().GetBool("handshake")
-			options.DhcpInfo, err = cmd.Flags().GetBool("info")
-			options.DhcpBroadcast, err = cmd.Flags().GetBool("dhcp-broadcast")
-			options.EthernetBroadcast, err = cmd.Flags().GetBool("ethernet-broadcast")
-			options.DhcpRelease, err = cmd.Flags().GetBool("release")
+			options.Handshake = getVal(cmd.Flags().GetBool("handshake")).(bool)
 
-			options.DhcpDecline, err = cmd.Flags().GetBool("decline")
+			options.DhcpInfo = getVal(cmd.Flags().GetBool("info")).(bool)
+			options.DhcpBroadcast = getVal(cmd.Flags().GetBool("dhcp-broadcast")).(bool)
+			options.EthernetBroadcast = getVal(cmd.Flags().GetBool("ethernet-broadcast")).(bool)
+			options.DhcpRelease = getVal(cmd.Flags().GetBool("release")).(bool)
+			options.DhcpDecline = getVal(cmd.Flags().GetBool("decline")).(bool)
 
-			options.RequestsPerSecond, err = cmd.Flags().GetInt("rps")
-			options.MaxLifetime, err = cmd.Flags().GetInt("maxlife")
-			options.MacCount, err = cmd.Flags().GetInt("mac-count")
+			options.RequestsPerSecond = getVal(cmd.Flags().GetInt("rps")).(int)
+			options.MaxLifetime = getVal(cmd.Flags().GetInt("maxlife")).(int)
+			options.MacCount = getVal(cmd.Flags().GetInt("mac-count")).(int)
+			options.StatsRate = getVal(cmd.Flags().GetInt("stats-rate")).(int)
 
-			options.StatsRate, err = cmd.Flags().GetInt("stats-rate")
+			options.Arp = getVal(cmd.Flags().GetBool("arp")).(bool)
+			options.ArpFakeMAC = getVal(cmd.Flags().GetBool("arp-fake-mac")).(bool)
+			options.Bind = getVal(cmd.Flags().GetBool("bind")).(bool)
 
-			options.Arp, err = cmd.Flags().GetBool("arp")
-			options.ArpFakeMAC, err = cmd.Flags().GetBool("arp-fake-mac")
-			options.Bind, err = cmd.Flags().GetBool("bind")
+			relayIP := getVal(cmd.Flags().GetString("relay-source-ip")).(string)
+			relayGatewayIP := getVal(cmd.Flags().GetString("relay-gateway-ip")).(string)
 
-			relayIP, err := cmd.Flags().GetString("relay-source-ip")
-			relayGatewayIP, err := cmd.Flags().GetString("relay-gateway-ip")
-			targetServerIP, err := cmd.Flags().GetString("relay-target-server-ip")
-			options.TargetPort, err = cmd.Flags().GetInt("target-port")
+			targetServerIP := getVal(cmd.Flags().GetString("relay-target-server-ip")).(string)
+			options.TargetPort = getVal(cmd.Flags().GetInt("target-port")).(int)
+			options.AdditionalDhcpOptions = getVal(cmd.Flags().GetStringArray("dhcp-option")).([]string)
 
-			options.AdditionalDhcpOptions, err = cmd.Flags().GetStringArray("dhcp-option")
+			socketeerOptions.InterfaceName = getVal(cmd.Flags().GetString("interface")).(string)
+			gatewayMAC := getVal(cmd.Flags().GetString("gateway-mac")).(string)
+			socketeerOptions.PromiscuousMode = getVal(cmd.Flags().GetBool("promisc")).(bool)
 
-			socketeerOptions.InterfaceName, err = cmd.Flags().GetString("interface")
-			gatewayMAC, err := cmd.Flags().GetString("gateway-mac")
-			socketeerOptions.PromiscuousMode, err = cmd.Flags().GetBool("promisc")
-
-			ApiAddress, err := cmd.Flags().GetString("api-address")
-			ApiPort, err := cmd.Flags().GetInt("api-port")
+			ApiAddress := getVal(cmd.Flags().GetString("api-address")).(string)
+			ApiPort := getVal(cmd.Flags().GetInt("api-port")).(int)
 
 			options.RelaySourceIP = net.ParseIP(relayIP)
 			options.RelayGatewayIP = net.ParseIP(relayGatewayIP)
@@ -104,13 +111,12 @@ func init() {
 			}
 
 			socketeerOptions.GatewayMAC, err = net.ParseMAC(gatewayMAC)
+			if err != nil {
+				panic(err)
+			}
 
 			if options.StatsRate <= 0 {
 				options.StatsRate = 5
-			}
-
-			if err != nil {
-				panic(err)
 			}
 
 			Hammer := hammer.New(socketeerOptions, options)
