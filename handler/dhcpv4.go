@@ -80,7 +80,7 @@ func (h *HandlerDhcpV4) Init() error {
 
 func (h *HandlerDhcpV4) DeInit() error {
 
-	if *h.options.Bind {
+	if h.options.Bind {
 		for _, lease := range h.acquiredIPs {
 			if err := netlink.AddrDel(h.link, lease.LinkAddr); err != nil {
 				h.addError(err)
@@ -111,7 +111,7 @@ func (h *HandlerDhcpV4) Run() {
 		Length:       0,
 	}
 
-	if !*h.options.EthernetBroadcast {
+	if !h.options.EthernetBroadcast {
 		ethernetLayer.DstMAC = socketeerOptions.GatewayMAC
 	}
 
@@ -125,7 +125,7 @@ func (h *HandlerDhcpV4) Run() {
 
 	udpLayer := &layers.UDP{
 		SrcPort: layers.UDPPort(68),
-		DstPort: layers.UDPPort(*h.options.TargetPort),
+		DstPort: layers.UDPPort(h.options.TargetPort),
 	}
 
 	outDhcpLayer := &layers.DHCPv4{
@@ -135,7 +135,7 @@ func (h *HandlerDhcpV4) Run() {
 		Flags:        0x8000, // Broadcast
 	}
 
-	if !*h.options.DhcpBroadcast {
+	if !h.options.DhcpBroadcast {
 		outDhcpLayer.Flags = 0x0
 	}
 
@@ -154,7 +154,7 @@ func (h *HandlerDhcpV4) Run() {
 
 	for msg = range h.inputChannel {
 
-		if *h.options.Arp && msg.Packet.Layer(layers.LayerTypeARP) != nil {
+		if h.options.Arp && msg.Packet.Layer(layers.LayerTypeARP) != nil {
 			h.addStat(stats.ArpRequestReceivedStat)
 			h.handleARP(msg)
 			continue
@@ -178,7 +178,7 @@ func (h *HandlerDhcpV4) Run() {
 
 			h.addStat(stats.OfferReceivedStat)
 
-			if *h.options.Handshake {
+			if h.options.Handshake {
 
 				buf := gopacket.NewSerializeBuffer()
 
@@ -186,7 +186,7 @@ func (h *HandlerDhcpV4) Run() {
 
 				outDhcpLayer.Options = make(layers.DHCPOptions, 4)
 
-				if *h.options.DhcpDecline {
+				if h.options.DhcpDecline {
 					outDhcpLayer.Options[0] = layers.NewDHCPOption(layers.DHCPOptMessageType, []byte{byte(layers.DHCPMsgTypeDecline)})
 				} else {
 					outDhcpLayer.Options[0] = layers.NewDHCPOption(layers.DHCPOptMessageType, []byte{byte(layers.DHCPMsgTypeRequest)})
@@ -208,7 +208,7 @@ func (h *HandlerDhcpV4) Run() {
 				)
 
 				if h.sendPayload(buf.Bytes()) {
-					if *h.options.DhcpDecline {
+					if h.options.DhcpDecline {
 						h.addStat(stats.DeclineSentStat)
 					} else {
 						h.addStat(stats.RequestSentStat)
@@ -219,7 +219,7 @@ func (h *HandlerDhcpV4) Run() {
 
 			h.addStat(stats.AckReceivedStat)
 
-			if *h.options.Arp || *h.options.Bind {
+			if h.options.Arp || h.options.Bind {
 
 				ipStr := dhcpReply.YourClientIP.String()
 
@@ -231,7 +231,7 @@ func (h *HandlerDhcpV4) Run() {
 						HwAddr:   dhcpReply.ClientHWAddr,
 					}
 
-					if *h.options.Bind {
+					if h.options.Bind {
 
 						// Need to fix the CIDR here...
 						if addr, err := netlink.ParseAddr(ipStr + "/32"); err != nil {
@@ -245,7 +245,7 @@ func (h *HandlerDhcpV4) Run() {
 				}
 			}
 
-			if *h.options.DhcpRelease || *h.options.DhcpInfo {
+			if h.options.DhcpRelease || h.options.DhcpInfo {
 
 				buf := gopacket.NewSerializeBuffer()
 
@@ -285,7 +285,7 @@ func (h *HandlerDhcpV4) Run() {
 				previousFlags := outDhcpLayer.Flags
 				outDhcpLayer.Flags = 0x0
 
-				if *h.options.DhcpInfo {
+				if h.options.DhcpInfo {
 					outDhcpLayer.Options[0] = layers.NewDHCPOption(layers.DHCPOptMessageType, []byte{byte(layers.DHCPMsgTypeInform)})
 				} else {
 					outDhcpLayer.Options[0] = layers.NewDHCPOption(layers.DHCPOptMessageType, []byte{byte(layers.DHCPMsgTypeRelease)})
@@ -309,7 +309,7 @@ func (h *HandlerDhcpV4) Run() {
 				outDhcpLayer.Flags = previousFlags
 
 				if h.sendPayload(buf.Bytes()) {
-					if *h.options.DhcpInfo {
+					if h.options.DhcpInfo {
 						h.addStat(stats.InfoSentStat)
 					} else {
 						h.addStat(stats.ReleaseSentStat)
@@ -352,7 +352,7 @@ func (h *HandlerDhcpV4) handleARP(msg message.Message) {
 				SourceProtAddress: arpRequest.DstProtAddress,
 			}
 
-			if *h.options.ArpFakeMAC {
+			if h.options.ArpFakeMAC {
 				arpLayer.SourceHwAddress = lease.HwAddr
 			}
 

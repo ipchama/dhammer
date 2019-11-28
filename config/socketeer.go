@@ -5,7 +5,7 @@ import (
 )
 
 type SocketeerOptions struct {
-	InterfaceName   *string
+	InterfaceName   string
 	GatewayMAC      net.HardwareAddr
-	PromiscuousMode *bool
+	PromiscuousMode bool
 }

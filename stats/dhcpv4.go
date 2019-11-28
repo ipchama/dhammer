@@ -93,7 +93,7 @@ func (s *StatsV4) Run() {
 
 	stopTicker := make(chan struct{})
 
-	ticker := time.NewTicker(time.Duration(*s.options.StatsRate) * time.Second)
+	ticker := time.NewTicker(time.Duration(s.options.StatsRate) * time.Second)
 	go func() {
 		for {
 			select {
@@ -123,7 +123,7 @@ func (s *StatsV4) Run() {
 
 func (s *StatsV4) calculateStats() error {
 
-	var StatsTickerRate float64 = float64(*s.options.StatsRate)
+	var StatsTickerRate float64 = float64(s.options.StatsRate)
 
 	s.countersMux.Lock()
 	for i := 0; i < len(s.counters); i++ {

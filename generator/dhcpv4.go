@@ -97,12 +97,12 @@ func (g *GeneratorV4) Run() {
 		Flags: 0x8000, // Broadcast
 	}
 
-	if !*g.options.DhcpBroadcast {
+	if !g.options.DhcpBroadcast {
 		outDhcpLayer.Flags = 0x0
 	}
 
 	baseOptionCount := 2
-	additionalOptionCount := g.options.AdditionalDhcpOptions.Len()
+	additionalOptionCount := len(g.options.AdditionalDhcpOptions)
 
 	outDhcpLayer.Options = make(layers.DHCPOptions, baseOptionCount+additionalOptionCount+1) // +1 for DHCPOptEnd
 
@@ -143,7 +143,7 @@ func (g *GeneratorV4) Run() {
 		Length:       0,
 	}
 
-	if !*g.options.EthernetBroadcast {
+	if !g.options.EthernetBroadcast {
 		ethernetLayer.DstMAC = socketeerOptions.GatewayMAC
 	}
 
@@ -157,7 +157,7 @@ func (g *GeneratorV4) Run() {
 
 	udpLayer := &layers.UDP{
 		SrcPort: layers.UDPPort(68),
-		DstPort: layers.UDPPort(*g.options.TargetPort),
+		DstPort: layers.UDPPort(g.options.TargetPort),
 	}
 
 	if g.options.DhcpRelay {
@@ -179,7 +179,7 @@ func (g *GeneratorV4) Run() {
 	start := time.Now()
 	time.Sleep(1)
 
-	mRps := *g.options.RequestsPerSecond
+	mRps := g.options.RequestsPerSecond
 
 	var t time.Time
 	var elapsed float64
@@ -187,7 +187,7 @@ func (g *GeneratorV4) Run() {
 
 	g.addLog("Finished generating MACs and preparing packet headers.")
 
-	for *g.options.MaxLifetime == 0 || int(elapsed) <= *g.options.MaxLifetime {
+	for g.options.MaxLifetime == 0 || int(elapsed) <= g.options.MaxLifetime {
 
 		select {
 		case _, _ = <-g.finishChannel:
@@ -246,7 +246,7 @@ func (g *GeneratorV4) generateMacList() []net.HardwareAddr {
 	nRand := rand.New(nS)
 
 	macs := make([]net.HardwareAddr, 0)
-	for i := 0; i < *g.options.MacCount; i++ {
+	for i := 0; i < g.options.MacCount; i++ {
 		// Have to play bit-shift games to make sure the first bit in the first octet (broadcast bit) in the MAC is 0 or this will look like a multicast address.
 		// Technically, should also be setting the second bit, but things will work either way.
 		if mac, err := net.ParseMAC(fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", nRand.Intn(256)&(^(1 << 8)), nRand.Intn(256), nRand.Intn(256), nRand.Intn(256), nRand.Intn(256), nRand.Intn(256))); err == nil {

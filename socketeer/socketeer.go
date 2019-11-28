@@ -57,7 +57,7 @@ func (s *RawSocketeer) Init() error {
 		return err
 	}
 
-	s.IfInfo, err = net.InterfaceByName(*s.options.InterfaceName)
+	s.IfInfo, err = net.InterfaceByName(s.options.InterfaceName)
 
 	if err != nil {
 		return err
@@ -80,8 +80,8 @@ func (s *RawSocketeer) Init() error {
 		return err
 	}
 
-	if *s.options.PromiscuousMode {
-		if err = syscall.SetLsfPromisc(*s.options.InterfaceName, true); err != nil {
+	if s.options.PromiscuousMode {
+		if err = syscall.SetLsfPromisc(s.options.InterfaceName, true); err != nil {
 			return err
 		}
 	}
@@ -91,8 +91,8 @@ func (s *RawSocketeer) Init() error {
 
 func (s *RawSocketeer) DeInit() error {
 
-	if *s.options.PromiscuousMode {
-		if err := syscall.SetLsfPromisc(*s.options.InterfaceName, false); err != nil {
+	if s.options.PromiscuousMode {
+		if err := syscall.SetLsfPromisc(s.options.InterfaceName, false); err != nil {
 			return err
 		}
 	}
