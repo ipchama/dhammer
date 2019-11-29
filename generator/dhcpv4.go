@@ -33,6 +33,10 @@ func init() {
 	if err := AddGenerator("dhcpv4", NewDhcpV4); err != nil {
 		panic(err)
 	}
+
+	if err := AddGenerator("dhcpv4", NewDhcpV4); err != nil {
+		panic(err)
+	}
 }
 
 func NewDhcpV4(gip GeneratorInitParams) Generator {
