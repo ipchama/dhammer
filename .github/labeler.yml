@@ -1,8 +1,8 @@
 factory:
-  - ./**/factory*
+  - ./**/factory.go
 
 dhcpv4:
-  - ./**/dhcpv4*
+  - ./**/dhcpv4.go
 
 stats:
   - stats/**/*
@@ -14,7 +14,7 @@ handler:
   - handler/**/*
 
 hammer:
-  - ./**/hammer*
+  - ./**/hammer.go
 
 socketeer:
   - socketeer/**/*
