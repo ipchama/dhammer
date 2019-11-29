@@ -1,6 +1,6 @@
-![alt text](sledge.jpg "Dhammer")
-
 [![DeepSource](https://static.deepsource.io/deepsource-badge-light.svg)](https://deepsource.io/gh/ipchama/dhammer/?ref=repository-badge)
+
+![alt text](sledge.jpg "Dhammer")
 
 # Dhammer
 
