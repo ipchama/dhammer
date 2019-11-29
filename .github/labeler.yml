@@ -1,8 +1,11 @@
 factory:
-  - ./**/factory.go
+  - "**/factory*"
 
 dhcpv4:
-  - ./**/dhcpv4.go
+  - "**/dhcpv4*"
+
+hammer:
+  - "**/hammer*"
 
 stats:
   - stats/**/*
@@ -12,9 +15,6 @@ generator:
 
 handler:
   - handler/**/*
-
-hammer:
-  - ./**/hammer.go
 
 socketeer:
   - socketeer/**/*
