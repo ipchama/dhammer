@@ -7,6 +7,7 @@ import (
 	"github.com/ipchama/dhammer/stats"
 )
 
+//test
 type Generator interface {
 	Init() error
 	Update(interface{}) error
