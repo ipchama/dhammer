@@ -239,7 +239,9 @@ func (h *Hammer) addStats(s string) bool {
 func (h *Hammer) Stop() {
 	// All "stop" calls should block.
 	// This will make sure no new payloads go TO the writer FROM the generator.
-	h.generator.Stop()
+	if err := h.generator.Stop(); err != nil {
+		panic(err)
+	}
 }
 
 func (h *Hammer) stop() {

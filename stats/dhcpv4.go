@@ -104,8 +104,9 @@ func (s *StatsV4) Run() {
 			case <-ticker.C:
 			}
 
-			s.calculateStats()
-			//s.addLog("\n[STATS]" + s.String())
+			if err := s.calculateStats(); err != nil {
+				s.addError(err)
+			}
 		}
 	}()
 
@@ -140,11 +141,11 @@ func (s *StatsV4) String() string {
 	s.countersMux.RLock()
 	defer s.countersMux.RUnlock()
 
-	if json, err := json.MarshalIndent(s.counters, "", "  "); err != nil {
+	if jsonData, err := json.MarshalIndent(s.counters, "", "  "); err != nil {
 		s.addError(err)
 		return ""
 	} else {
-		return string(json)
+		return string(jsonData)
 	}
 }
 

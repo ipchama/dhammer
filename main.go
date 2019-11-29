@@ -17,5 +17,7 @@ func main() {
 		cmd.Stop()
 	}()
 
-	cmd.Execute()
+	if err := cmd.Execute(); err != nil {
+		panic(err)
+	}
 }
