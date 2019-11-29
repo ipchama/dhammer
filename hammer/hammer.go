@@ -26,7 +26,7 @@ import (
 		Option to automatically select gateway MAC from default route gateway.
 		Option structs should stop being references.
 */
-
+//test
 type Hammer struct {
 	options          config.HammerConfig
 	socketeerOptions *config.SocketeerOptions

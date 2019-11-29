@@ -16,6 +16,7 @@ type Handler interface {
 	DeInit() error
 }
 
+//test
 type HandlerInitParams struct {
 	options   config.HammerConfig
 	socketeer *socketeer.RawSocketeer
