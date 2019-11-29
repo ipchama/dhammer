@@ -35,7 +35,7 @@ func AddGenerator(s string, f func(GeneratorInitParams) Generator) error {
 	return nil
 }
 
-func New(s *socketeer.RawSocketeer, o config.HammerConfig, logFunc func(string) bool, errFunc func(error) bool, statFunc func(stats.StatValue) bool) (error, Generator) {
+func New(s *socketeer.RawSocketeer, o config.HammerConfig, logFunc func(string) bool, errFunc func(error) bool, statFunc func(stats.StatValue) bool) (Generator, error) {
 
 	gip := GeneratorInitParams{
 		socketeer: s,
@@ -48,8 +48,8 @@ func New(s *socketeer.RawSocketeer, o config.HammerConfig, logFunc func(string) 
 	gf, ok := generators[o.HammerType()]
 
 	if !ok {
-		return errors.New("Generators - Hammer type not found: " + o.HammerType()), nil
+		return nil, errors.New("Generators - Hammer type not found: " + o.HammerType())
 	}
 
-	return nil, gf(gip)
+	return gf(gip), nil
 }
