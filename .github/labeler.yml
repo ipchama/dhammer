@@ -7,6 +7,9 @@ dhcpv4:
 hammer:
   - "**/hammer*"
 
+socketeer:
+  - "**/socketeer*"
+
 stats:
   - stats/**/*
 
@@ -15,9 +18,6 @@ generator:
 
 handler:
   - handler/**/*
-
-socketeer:
-  - socketeer/**/*
 
 config:
   - config/**/*
