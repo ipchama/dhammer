@@ -1,5 +1,5 @@
 ![alt text](sledge.jpg "Dhammer")
-
+[![DeepSource](https://static.deepsource.io/deepsource-badge-light.svg)](https://deepsource.io/gh/ipchama/dhammer/?ref=repository-badge)
 # Dhammer
 
 Dhammer is a stress-tester for DHCP servers.  It currently only supports DHCPv4, but it was created with the strong intention of including DHCPv6 in the very near future.
@@ -16,81 +16,28 @@ It's also possible to have dhammer bind any assigned IPs to the loopback and han
 
 Just download, compile, and run.
 
-### Dependencies
-
-https://github.com/google/gopacket
-
-https://github.com/google/gopacket/layers
-
 ### Installing
 
 ```
 go get -u github.com/ipchama/dhammer
-go build dhammer.go
+```
+### Building
+```
+go build .
 ```
 ## Examples
 #### Broadcast on the local network 
 ```
-sudo ./dhammer --interface wlan1 --mac-count 10000 --rps 100 --maxlife 0
+sudo ./dhammer dhcpv4 --interface wlan1 --mac-count 10000 --rps 100 --maxlife 0
 ```
 #### Target a specific server via DHCP relay
 ```
-sudo ./dhammer --interface wlan1 --mac-count 10000 --gateway-mac "48:f8:b6:f7:30:28" --rps 1000 --maxlife 0 --relay-target-server-ip 192.168.1.1 --relay-source-ip 192.168.1.143
+sudo ./dhammer dhcpv4 --interface wlan1 --mac-count 10000 --gateway-mac "48:f8:b6:f7:30:28" --rps 1000 --maxlife 0 --relay-target-server-ip 192.168.1.1 --relay-source-ip 192.168.1.143
 ```
 To use the relay, particularly if you'll be attempting to test a server across the WAN, you'll need to pass in the MAC of your gateway, which can easily be obtained by checking your ARP table (Ex: `arp -a -n`).  I hope to have gateway MAC detection become automatic in a future release.
 
 Dhammer uses very raw sockets to do its job, so `CAP_NET_ADMIN` and `CAP_NET_RAW` are needed at the very least.  I.e., just `sudo` and get moving.
 
-```
-
-Usage of ./dhammer:
-  -api-address string
-    	IP for the API server to listen on.
-  -api-port int
-    	Port for the API server to listen on. (default 8080)
-  -arp
-    	Respond to arp requests for assigned IPs.
-  -arp-fake-mac
-    	Respond to ARP requests with the generated MAC used to originally obtain the lease.  You might want to set arp_ignore to 1 or 3 for the interface sending packets. For full functionality, the --promisc option is needed.
-  -bind
-    	Bind acquired IPs to the loopback device.  Combined with the --arp option, this will result in fully functioning IPs.
-  -decline
-    	Decline offers.
-  -dhcp-broadcast
-    	Set the broadcast bit. (default true)
-  -dhcp-option value
-    	Additional DHCP option to send out in the discover. Can be used multiple times. Format: <option num>:<RFC4648-base64-encoded-value>
-  -ethernet-broadcast
-    	Use ethernet broadcasting. (default true)
-  -gateway-mac string
-    	MAC of the gateway. (default "de:ad:be:ef:f0:0d")
-  -handshake
-    	Attempt full handshakes (default true)
-  -info
-    	Send DHCPINFO packets. This requires a full handshake.
-  -interface string
-    	Interface name for listening and sending. (default "eth0")
-  -mac-count int
-    	Number of unique MAC addresses to pre-generate. (default 1)
-  -maxlife int
-    	How long to run. 0 == forever
-  -promisc
-    	Turn on promiscuous mode for the listening interface.
-  -relay-gateway-ip string
-    	Gateway (giaddr) IP for relayed requests.  If not set, it will default to the relay source IP.
-  -relay-source-ip string
-    	Source IP for relayed requests.  relay-source-ip AND relay-target-server-ip must be set for relay mode.
-  -relay-target-server-ip string
-    	Target/Destination IP for relayed requests.  relay-source-ip AND relay-target-server-ip must be set for relay mode.
-  -release
-    	Release leases after acquiring them.
-  -rps int
-    	Max number of packets per second. 0 == unlimited.
-  -stats-rate int
-    	How frequently to update stat calculations. (seconds). (default 5)
-  -target-port int
-    	Target port for special cases.  Rarely would you want to use this. (default 67)
-```
 Stats are now accessible via API calls with JSON responses.  An example python script to interact with them is included in the repo.
 
 Example response from http://localhost:8080/stats:
@@ -149,10 +96,6 @@ Example response from http://localhost:8080/stats:
 ## Contributing
 
 Contributions are welcome.  In particular, help me make the stats better! :D
-
-## Authors
-
-* **IPCHama** - *Initial work* - [ipchama](https://github.com/ipchama)
 
 ## License
 
