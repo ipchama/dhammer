@@ -1,0 +1,29 @@
+factory:
+  - ./**/factory*
+
+dhcpv4:
+  - ./**/dhcpv4*
+
+stats:
+  - stats/**/*
+
+generator:
+  - generator/**/*
+
+handler:
+  - handler/**/*
+
+hammer:
+  - ./**/hammer*
+
+socketeer:
+  - socketeer/**/*
+
+config:
+  - config/**/*
+
+cmd:
+  - cmd/**/*
+
+repo:
+  - ./*
