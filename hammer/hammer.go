@@ -61,7 +61,7 @@ func (h *Hammer) Init(apiAddr string, apiPort int) error {
 
 	log.SetFlags(log.LstdFlags | log.LUTC)
 
-	if err, h.stats = stats.New(h.options, h.addStats, h.addError); err != nil {
+	if h.stats, err = stats.New(h.options, h.addStats, h.addError); err != nil {
 		return err
 	}
 
@@ -74,7 +74,7 @@ func (h *Hammer) Init(apiAddr string, apiPort int) error {
 		return err
 	}
 
-	if err, h.handler = handler.New(h.socketeer, h.options, h.addLog, h.addError, h.stats.AddStat); err != nil {
+	if h.handler, err = handler.New(h.socketeer, h.options, h.addLog, h.addError, h.stats.AddStat); err != nil {
 		return err
 	}
 
@@ -84,7 +84,7 @@ func (h *Hammer) Init(apiAddr string, apiPort int) error {
 
 	h.socketeer.SetReceiver(h.handler.ReceiveMessage)
 
-	if err, h.generator = generator.New(h.socketeer, h.options, h.addLog, h.addError, h.stats.AddStat); err != nil {
+	if h.generator, err = generator.New(h.socketeer, h.options, h.addLog, h.addError, h.stats.AddStat); err != nil {
 		return err
 	}
 

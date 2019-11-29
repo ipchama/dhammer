@@ -41,7 +41,7 @@ func AddStatter(s string, f func(StatsInitParams) Stats) error {
 	return nil
 }
 
-func New(o config.HammerConfig, logFunc func(string) bool, errFunc func(error) bool) (error, Stats) {
+func New(o config.HammerConfig, logFunc func(string) bool, errFunc func(error) bool) (Stats, error) {
 	sip := StatsInitParams{
 		options: o,
 		logFunc: logFunc,
@@ -51,8 +51,8 @@ func New(o config.HammerConfig, logFunc func(string) bool, errFunc func(error) b
 	sf, ok := statters[o.HammerType()]
 
 	if !ok {
-		return errors.New("Statters - Hammer type not found: " + o.HammerType()), nil
+		return nil, errors.New("Statters - Hammer type not found: " + o.HammerType())
 	}
 
-	return nil, sf(sip)
+	return sf(sip), nil
 }

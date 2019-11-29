@@ -36,7 +36,7 @@ func AddHandler(s string, f func(HandlerInitParams) Handler) error {
 	return nil
 }
 
-func New(s *socketeer.RawSocketeer, o config.HammerConfig, logFunc func(string) bool, errFunc func(error) bool, statFunc func(stats.StatValue) bool) (error, Handler) {
+func New(s *socketeer.RawSocketeer, o config.HammerConfig, logFunc func(string) bool, errFunc func(error) bool, statFunc func(stats.StatValue) bool) (Handler, error) {
 	hip := HandlerInitParams{
 		options:   o,
 		socketeer: s,
@@ -48,8 +48,8 @@ func New(s *socketeer.RawSocketeer, o config.HammerConfig, logFunc func(string) 
 	hf, ok := handlers[o.HammerType()]
 
 	if !ok {
-		return errors.New("Handlers - Hammer type not found: " + o.HammerType()), nil
+		return nil, errors.New("Handlers - Hammer type not found: " + o.HammerType())
 	}
 
-	return nil, hf(hip)
+	return hf(hip), nil
 }
