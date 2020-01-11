@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/ipchama/dhammer/config"
@@ -11,6 +12,7 @@ import (
 	"github.com/vishvananda/netlink"
 	"net"
 	"sync"
+	"time"
 )
 
 func prepareCmd(cmd *cobra.Command) *cobra.Command {
@@ -61,7 +63,7 @@ func arp(n string, l netlink.Link, i net.IP) (net.HardwareAddr, error) {
 
 	srcAddr := getVal(netlink.AddrList(l, netlink.FAMILY_V4)).([]netlink.Addr)[0]
 
-	s := socketeer.NewRawSocketeer(&config.SocketeerOptions{InterfaceName: n, PromiscuousMode: true}, func(s string) bool { return true }, func(e error) bool { panic(e); return true })
+	s := socketeer.NewRawSocketeer(&config.SocketeerOptions{InterfaceName: n}, func(s string) bool { return true }, func(e error) bool { panic(e); return true })
 
 	if err := s.Init(); err != nil {
 		return nil, err
@@ -107,12 +109,12 @@ func arp(n string, l netlink.Link, i net.IP) (net.HardwareAddr, error) {
 
 	arpLayer := &layers.ARP{
 		Operation:         layers.ARPRequest,
-		DstHwAddress:      net.HardwareAddr{0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		DstHwAddress:      net.HardwareAddr{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, // Broadcast
 		DstProtAddress:    i,
 		HwAddressSize:     6,
-		AddrType:          1,
+		AddrType:          1, // Netlink type: ethernet
 		ProtAddressSize:   4,
-		Protocol:          0x800,
+		Protocol:          0x800, // Ipv4
 		SourceHwAddress:   s.IfInfo.HardwareAddr,
 		SourceProtAddress: srcAddr.IP,
 	}
@@ -125,11 +127,24 @@ func arp(n string, l netlink.Link, i net.IP) (net.HardwareAddr, error) {
 
 	s.AddPayload(buf.Bytes())
 
-	gwMac := <-arpReplies
+	timer := time.NewTimer(5 * time.Second)
+	go func() {
+		<-timer.C
+		close(arpReplies)
+	}()
+
+	gwMac, ok := <-arpReplies
+
+	timer.Stop()
 
 	s.StopListener()
 	s.StopWriter()
 	wg.Wait()
+
+	if !ok {
+		return nil, errors.New("Failed to get ARP response for default gateway probe during init.")
+	}
+
 	return gwMac, nil
 }
 
