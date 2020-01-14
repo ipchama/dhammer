@@ -36,9 +36,9 @@ sudo ./dhammer dhcpv4 --interface wlan1 --mac-count 10000 --rps 100 --maxlife 0
 ```
 sudo ./dhammer dhcpv4 --interface wlan1 --mac-count 10000 --gateway-mac "48:f8:b6:f7:30:28" --rps 1000 --maxlife 0 --relay-target-server-ip 192.168.1.1 --relay-source-ip 192.168.1.143
 ```
-To use the relay, particularly if you'll be attempting to test a server across the WAN, you'll need to pass in the MAC of your gateway, which can easily be obtained by checking your ARP table (Ex: `arp -a -n`).  I hope to have gateway MAC detection become automatic in a future release.
+To use the relay, particularly if you'll be attempting to test a server across the WAN, you'll need the MAC of your gateway.  However, if you omit the `--gateway-mac` option, dhammer will attempt to find your default route and ARP for the MAC address. 
 
-Dhammer uses very raw sockets to do its job, so `CAP_NET_ADMIN` and `CAP_NET_RAW` are needed at the very least.  I.e., just `sudo` and get moving.
+Dhammer uses very raw sockets to do its job, so `CAP_NET_ADMIN` (for binding) and `CAP_NET_RAW` are needed at the very least.  I.e., just `sudo` and get moving.
 
 Stats are now accessible via API calls with JSON responses.  An example python script to interact with them is included in the repo.
 

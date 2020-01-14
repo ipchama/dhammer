@@ -1,10 +1,18 @@
 package cmd
 
 import (
+	"errors"
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
 	"github.com/ipchama/dhammer/config"
 	"github.com/ipchama/dhammer/hammer"
+	"github.com/ipchama/dhammer/message"
+	"github.com/ipchama/dhammer/socketeer"
 	"github.com/spf13/cobra"
+	"github.com/vishvananda/netlink"
 	"net"
+	"sync"
+	"time"
 )
 
 func prepareCmd(cmd *cobra.Command) *cobra.Command {
@@ -34,7 +42,7 @@ func prepareCmd(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().StringArray("dhcp-option", []string{}, "Additional DHCP option to send out in the discover. Can be used multiple times. Format: <option num>:<RFC4648-base64-encoded-value>")
 
 	cmd.Flags().String("interface", "eth0", "Interface name for listening and sending.")
-	cmd.Flags().String("gateway-mac", "de:ad:be:ef:f0:0d", "MAC of the gateway.")
+	cmd.Flags().String("gateway-mac", "auto", "MAC of the gateway.")
 	cmd.Flags().Bool("promisc", false, "Turn on promiscuous mode for the listening interface.")
 
 	cmd.Flags().String("api-address", "", "IP for the API server to listen on.")
@@ -49,6 +57,95 @@ func getVal(i interface{}, err error) interface{} {
 	}
 
 	return i
+}
+
+func arp(n string, l netlink.Link, i net.IP) (net.HardwareAddr, error) {
+
+	srcAddr := getVal(netlink.AddrList(l, netlink.FAMILY_V4)).([]netlink.Addr)[0]
+
+	s := socketeer.NewRawSocketeer(&config.SocketeerOptions{InterfaceName: n}, func(s string) bool { return true }, func(e error) bool { panic(e); return true })
+
+	if err := s.Init(); err != nil {
+		return nil, err
+	}
+
+	arpReplies := make(chan net.HardwareAddr)
+
+	s.SetReceiver(func(msg message.Message) bool {
+		if msg.Packet.Layer(layers.LayerTypeARP) != nil {
+			arpMsg := msg.Packet.Layer(layers.LayerTypeARP).(*layers.ARP)
+			if arpMsg.Operation == layers.ARPReply {
+				if net.IP(arpMsg.SourceProtAddress).String() == i.String() {
+					arpReplies <- arpMsg.SourceHwAddress
+				}
+			}
+		}
+
+		return true
+	})
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		s.RunWriter()
+		wg.Done()
+
+	}()
+	wg.Add(1)
+	go func() {
+		s.RunListener()
+		wg.Done()
+	}()
+
+	goPacketSerializeOpts := gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}
+
+	ethernetLayer := &layers.Ethernet{
+		DstMAC:       layers.EthernetBroadcast,
+		SrcMAC:       s.IfInfo.HardwareAddr,
+		EthernetType: layers.EthernetTypeARP,
+		Length:       0,
+	}
+
+	arpLayer := &layers.ARP{
+		Operation:         layers.ARPRequest,
+		DstHwAddress:      layers.EthernetBroadcast, // Broadcast
+		DstProtAddress:    i,
+		HwAddressSize:     6,
+		AddrType:          1, // Netlink type: ethernet
+		ProtAddressSize:   4,
+		Protocol:          0x800, // Ipv4
+		SourceHwAddress:   s.IfInfo.HardwareAddr,
+		SourceProtAddress: srcAddr.IP,
+	}
+	buf := gopacket.NewSerializeBuffer()
+
+	gopacket.SerializeLayers(buf, goPacketSerializeOpts,
+		ethernetLayer,
+		arpLayer,
+	)
+
+	s.AddPayload(buf.Bytes())
+
+	timer := time.NewTimer(5 * time.Second)
+	go func() {
+		<-timer.C
+		close(arpReplies)
+	}()
+
+	gwMac, ok := <-arpReplies
+
+	timer.Stop()
+
+	s.StopListener()
+	s.StopWriter()
+	wg.Wait()
+
+	if !ok {
+		return nil, errors.New("Failed to get ARP response for default gateway probe during init.")
+	}
+
+	return gwMac, nil
 }
 
 func init() {
@@ -107,9 +204,22 @@ func init() {
 				options.DhcpRelay = true
 			}
 
-			socketeerOptions.GatewayMAC, err = net.ParseMAC(gatewayMAC)
-			if err != nil {
-				panic(err)
+			// netlink and arp to get the gw IP and then ARP to get the MAC
+			if gatewayMAC == "auto" {
+				link := getVal(netlink.LinkByName(socketeerOptions.InterfaceName)).(netlink.Link)
+				routes := getVal(netlink.RouteList(link, netlink.FAMILY_V4)).([]netlink.Route)
+
+				for _, r := range routes {
+					if r.Dst == nil && r.Src == nil { // We've found the default route.
+						socketeerOptions.GatewayMAC = getVal(arp(socketeerOptions.InterfaceName, link, r.Gw)).(net.HardwareAddr)
+						break
+					}
+				}
+			} else {
+				socketeerOptions.GatewayMAC, err = net.ParseMAC(gatewayMAC)
+				if err != nil {
+					panic(err)
+				}
 			}
 
 			if options.StatsRate <= 0 {
