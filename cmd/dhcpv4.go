@@ -101,7 +101,7 @@ func arp(n string, l netlink.Link, i net.IP) (net.HardwareAddr, error) {
 	goPacketSerializeOpts := gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}
 
 	ethernetLayer := &layers.Ethernet{
-		DstMAC:       net.HardwareAddr{0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+		DstMAC:       layers.EthernetBroadcast,
 		SrcMAC:       s.IfInfo.HardwareAddr,
 		EthernetType: layers.EthernetTypeARP,
 		Length:       0,
@@ -109,7 +109,7 @@ func arp(n string, l netlink.Link, i net.IP) (net.HardwareAddr, error) {
 
 	arpLayer := &layers.ARP{
 		Operation:         layers.ARPRequest,
-		DstHwAddress:      net.HardwareAddr{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, // Broadcast
+		DstHwAddress:      layers.EthernetBroadcast, // Broadcast
 		DstProtAddress:    i,
 		HwAddressSize:     6,
 		AddrType:          1, // Netlink type: ethernet
