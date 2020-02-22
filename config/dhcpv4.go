@@ -24,6 +24,8 @@ type DhcpV4Options struct {
 
 	AdditionalDhcpOptions []string
 
+	AdditionalMacs []string
+
 	RequestsPerSecond int
 	MaxLifetime       int
 	MacCount          int
