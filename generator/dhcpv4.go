@@ -247,7 +247,7 @@ func (g *GeneratorV4) generateMacList() []net.HardwareAddr {
 
 	macs := make([]net.HardwareAddr, 0)
 
-	padMacCount := g.options.MacCount - len(g.options.AdditionalMacs)
+	padMacCount := g.options.MacCount - len(g.options.SpecifiedMacs)
 
 	for i := 0; i < padMacCount; i++ {
 		// Have to play bit-shift games to make sure the first bit in the first octet (broadcast bit) in the MAC is 0 or this will look like a multicast address.
@@ -259,7 +259,7 @@ func (g *GeneratorV4) generateMacList() []net.HardwareAddr {
 		}
 	}
 
-	for _, m := range g.options.AdditionalMacs {
+	for _, m := range g.options.SpecifiedMacs {
 		if mac, err := net.ParseMAC(m); err == nil {
 			macs = append(macs, mac)
 		} else {

@@ -173,9 +173,9 @@ func init() {
 			options.RequestsPerSecond = getVal(cmd.Flags().GetInt("rps")).(int)
 			options.MaxLifetime = getVal(cmd.Flags().GetInt("maxlife")).(int)
 			options.MacCount = getVal(cmd.Flags().GetInt("mac-count")).(int)
-			options.AdditionalMacs = getVal(cmd.Flags().GetStringArray("mac")).([]string)
+			options.SpecifiedMacs = getVal(cmd.Flags().GetStringArray("mac")).([]string)
 
-			if options.MacCount <= 0 && len(options.AdditionalMacs) == 0 {
+			if options.MacCount <= 0 && len(options.SpecifiedMacs) == 0 {
 				panic("At least one of mac-count or mac options must be used.")
 			}
 
