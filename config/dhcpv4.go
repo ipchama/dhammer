@@ -26,7 +26,9 @@ type DhcpV4Options struct {
 
 	RequestsPerSecond int
 	MaxLifetime       int
-	MacCount          int
+
+	MacCount      int
+	SpecifiedMacs []string
 
 	StatsRate int
 }
