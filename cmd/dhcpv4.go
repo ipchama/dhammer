@@ -138,8 +138,14 @@ func arp(n string, l netlink.Link, i net.IP) (net.HardwareAddr, error) {
 
 	timer.Stop()
 
-	s.StopListener()
-	s.StopWriter()
+	if err := s.StopListener(); err != nil {
+		panic(err)
+	}
+
+	if err := s.StopWriter(); err != nil {
+		panic(err)
+	}
+
 	wg.Wait()
 
 	if !ok {
