@@ -64,7 +64,7 @@ func arp(n string, l netlink.Link, i net.IP) (net.HardwareAddr, error) {
 
 	srcAddr := getVal(netlink.AddrList(l, netlink.FAMILY_V4)).([]netlink.Addr)[0]
 
-	s := socketeer.NewRawSocketeer(&config.SocketeerOptions{InterfaceName: n}, func(s string) bool { return true }, func(e error) bool { panic(e); return true })
+	s := socketeer.NewRawSocketeer(&config.SocketeerOptions{InterfaceName: n}, func(s string) bool { return true }, func(e error) bool { println(e); return true })
 
 	if err := s.Init(); err != nil {
 		return nil, err
@@ -139,11 +139,11 @@ func arp(n string, l netlink.Link, i net.IP) (net.HardwareAddr, error) {
 	timer.Stop()
 
 	if err := s.StopListener(); err != nil {
-		panic(err)
+		println(err)
 	}
 
 	if err := s.StopWriter(); err != nil {
-		panic(err)
+		println(err)
 	}
 
 	wg.Wait()
