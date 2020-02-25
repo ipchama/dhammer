@@ -138,6 +138,10 @@ func arp(n string, l netlink.Link, i net.IP) (net.HardwareAddr, error) {
 
 	timer.Stop()
 
+	/*	Many things could happen here that we really don't need to care about and that could cause "false-positive" failures.
+		Either we got an arp response or we didn't.  The !ok test below is all that should matter.  We just want output for debugging purposes.
+		Still, revisit becasue this could still be handled better..
+	*/
 	if err := s.StopListener(); err != nil {
 		println(err)
 	}
