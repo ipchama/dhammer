@@ -77,7 +77,10 @@ func arp(n string, l netlink.Link, i net.IP) (net.HardwareAddr, error) {
 			arpMsg := msg.Packet.Layer(layers.LayerTypeARP).(*layers.ARP)
 			if arpMsg.Operation == layers.ARPReply {
 				if net.IP(arpMsg.SourceProtAddress).String() == i.String() {
-					arpReplies <- arpMsg.SourceHwAddress
+					select {
+					case arpReplies <- arpMsg.SourceHwAddress:
+					default:
+					}
 				}
 			}
 		}
