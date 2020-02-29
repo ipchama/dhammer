@@ -6,6 +6,7 @@ import (
 	"github.com/google/gopacket/layers"
 	"github.com/ipchama/dhammer/config"
 	"github.com/ipchama/dhammer/message"
+	"golang.org/x/sys/unix"
 	"net"
 	"runtime"
 	"syscall"
@@ -55,6 +56,13 @@ func (s *RawSocketeer) Init() error {
 
 	if s.socketFd, err = syscall.Socket(syscall.AF_PACKET, syscall.SOCK_RAW, syscall.ETH_P_ALL); err != nil {
 		return err
+	}
+
+	if s.options.EbpfFilter != nil {
+		err = unix.SetsockoptSockFprog(s.socketFd, syscall.SOL_SOCKET, syscall.SO_ATTACH_FILTER, s.options.EbpfFilter)
+		if err != nil {
+			return err
+		}
 	}
 
 	s.IfInfo, err = net.InterfaceByName(s.options.InterfaceName)
