@@ -12,6 +12,9 @@ import (
 	"syscall"
 )
 
+// TODO:	Move syscalls from syscall package to golang.org/x/sys/unix.
+//			Maybe add custom port to ebpf rules.
+
 type RawSocketeer struct {
 	socketFd      int
 	IfInfo        *net.Interface
