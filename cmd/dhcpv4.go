@@ -10,6 +10,7 @@ import (
 	"github.com/ipchama/dhammer/socketeer"
 	"github.com/spf13/cobra"
 	"github.com/vishvananda/netlink"
+	"golang.org/x/sys/unix"
 	"net"
 	"sync"
 	"time"
@@ -246,6 +247,37 @@ func init() {
 				options.StatsRate = 5
 			}
 
+			filter := [28]unix.SockFilter{{0x28, 0, 0, 0x0000000c}, // "arp or (port 67 or port 68)"
+				{0x15, 24, 0, 0x00000806},
+				{0x15, 0, 9, 0x000086dd},
+				{0x30, 0, 0, 0x00000014},
+				{0x15, 2, 0, 0x00000084},
+				{0x15, 1, 0, 0x00000006},
+				{0x15, 0, 20, 0x00000011},
+				{0x28, 0, 0, 0x00000036},
+				{0x15, 17, 0, 0x00000043},
+				{0x15, 16, 0, 0x00000044},
+				{0x28, 0, 0, 0x00000038},
+				{0x15, 14, 13, 0x00000043},
+				{0x15, 0, 14, 0x00000800},
+				{0x30, 0, 0, 0x00000017},
+				{0x15, 2, 0, 0x00000084},
+				{0x15, 1, 0, 0x00000006},
+				{0x15, 0, 10, 0x00000011},
+				{0x28, 0, 0, 0x00000014},
+				{0x45, 8, 0, 0x00001fff},
+				{0xb1, 0, 0, 0x0000000e},
+				{0x48, 0, 0, 0x0000000e},
+				{0x15, 4, 0, 0x00000043},
+				{0x15, 3, 0, 0x00000044},
+				{0x48, 0, 0, 0x00000010},
+				{0x15, 1, 0, 0x00000043},
+				{0x15, 0, 1, 0x00000044},
+				{0x6, 0, 0, 0x00040000},
+				{0x6, 0, 0, 0x00000000}}
+
+			socketeerOptions.EbpfFilter = &unix.SockFprog{28, &filter[0]}
+
 			gHammer = hammer.New(socketeerOptions, options)
 
 			err = gHammer.Init(ApiAddress, ApiPort)
@@ -253,6 +285,7 @@ func init() {
 			if err != nil {
 				panic(err)
 			}
+
 			err = gHammer.Run()
 
 			if err != nil {
