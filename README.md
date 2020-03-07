@@ -101,7 +101,7 @@ Contributions are welcome.  In particular, help me make the stats better! :D
 
 ## License
 
-This project is licensed under the GPL v3 License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the Apache v2.0 License - see the [LICENSE](LICENSE) file for details
 
 ## Disclaimer
 
