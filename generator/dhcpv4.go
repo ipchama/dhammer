@@ -252,11 +252,7 @@ func (g *GeneratorV4) generateMacList() []net.HardwareAddr {
 	for i := 0; i < padMacCount; i++ {
 		// Have to play bit-shift games to make sure the first bit in the first octet (broadcast bit) in the MAC is 0 or this will look like a multicast address.
 		// Technically, should also be setting the second bit, but things will work either way.
-		if mac, err := net.ParseMAC(fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", nRand.Intn(256)&(^(1 << 8)), nRand.Intn(256), nRand.Intn(256), nRand.Intn(256), nRand.Intn(256), nRand.Intn(256))); err == nil {
-			macs = append(macs, mac)
-		} else {
-			g.addError(err)
-		}
+		macs = append(macs, net.HardwareAddr{byte(nRand.Intn(256) & (^(1 << 8))), byte(nRand.Intn(256)), byte(nRand.Intn(256)), byte(nRand.Intn(256)), byte(nRand.Intn(256)), byte(nRand.Intn(256))})
 	}
 
 	for _, m := range g.options.SpecifiedMacs {
