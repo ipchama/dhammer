@@ -19,5 +19,7 @@ jobs:
       shell: bash
     - name: Checkout code
       uses: actions/checkout@v2
+    - name: Get dependencies
+      run: go get -v -u .
     - name: Test
       run: go test ./...
