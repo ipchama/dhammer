@@ -16,13 +16,14 @@ jobs:
       run: |
         echo "::set-env name=GOPATH::$(dirname $GITHUB_WORKSPACE)"
         echo "::add-path::$(dirname $GITHUB_WORKSPACE)/bin"
+        echo "##[add-path]$(dirname $GITHUB_WORKSPACE)/src"
       shell: bash
     - name: Get dependencies
       run: go get -v -u github.com/ipchama/dhammer
     - name: setup env pt2
       run: |
         cd $GOPATH/src/github.com/ipchama/dhammer
-        git checkout $GITHUB_REF
+        git checkout ${{github.event.pull_request.head.ref}}
       shell: bash
     - name: Test
       run: go test ./...
