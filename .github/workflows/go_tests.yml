@@ -20,10 +20,9 @@ jobs:
       shell: bash
     - name: Get dependencies
       run: go get -v -u github.com/ipchama/dhammer
-    - name: setup env pt2
+    - name: Switch to branch and test
       run: |
         cd $GOPATH/src/github.com/ipchama/dhammer
         git checkout ${{github.event.pull_request.head.ref}}
+        go test ./...
       shell: bash
-    - name: Test
-      run: go test ./...
