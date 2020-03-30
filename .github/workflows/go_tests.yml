@@ -22,7 +22,8 @@ jobs:
       run: go get -v -u github.com/ipchama/dhammer
     - name: Switch to branch and test
       run: |
-        cd $GOPATH/src/github.com/ipchama/dhammer
-        git checkout ${{github.event.pull_request.head.ref}}
-        go test ./...
+        cd $GOPATH/src/github.com/ipchama/dhammer \
+        && git checkout ${{github.event.pull_request.head.ref}} \
+        && go test ./...
+        exit $?
       shell: bash
