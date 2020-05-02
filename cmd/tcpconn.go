@@ -1,22 +1,14 @@
 package cmd
 
 import (
-	"errors"
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
 	"github.com/ipchama/dhammer/config"
 	"github.com/ipchama/dhammer/hammer"
-	"github.com/ipchama/dhammer/message"
-	"github.com/ipchama/dhammer/socketeer"
 	"github.com/spf13/cobra"
-	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
 	"net"
-	"sync"
-	"time"
 )
 
-func prepareCmd(cmd *cobra.Command) *cobra.Command {
+func prepareTcpCmd(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Bool("syn", true, "Send only SYN. (same as handhake=1)")
 	cmd.Flags().Bool("syn-ack", true, "Send SYN-ACK")
 	cmd.Flags().Bool("ack", true, "Send only acks")
@@ -45,7 +37,7 @@ func prepareCmd(cmd *cobra.Command) *cobra.Command {
 
 func init() {
 
-	rootCmd.AddCommand(prepareCmd(&cobra.Command{
+	rootCmd.AddCommand(prepareTcpCmd(&cobra.Command{
 		Use:   "tcpconn",
 		Short: "Run a tcp-based load test.",
 		Long:  `Run a tcp-based load test.`,
@@ -79,23 +71,16 @@ func init() {
 			ApiAddress := getVal(cmd.Flags().GetString("api-address")).(string)
 			ApiPort := getVal(cmd.Flags().GetInt("api-port")).(int)
 
-			options.TargetServerIP = net.ParseIP(targetServerIP)
+			options.TargetServerIP = net.ParseIP(targetServerIp)
 
-			if options.RelayGatewayIP == nil {
-				options.RelayGatewayIP = options.RelaySourceIP
-				// TODO PANIC
+			if options.TargetServerIP == nil {
+				panic("TargetServerIP is invalid.")
 			}
 
 			// netlink and arp to get the gw IP and then ARP to get the MAC
 			if gatewayMAC == "auto" {
-				link := getVal(netlink.LinkByName(socketeerOptions.InterfaceName)).(netlink.Link)
-				routes := getVal(netlink.RouteList(link, netlink.FAMILY_V4)).([]netlink.Route)
-
-				for _, r := range routes {
-					if r.Dst == nil && r.Src == nil { // We've found the default route.
-						socketeerOptions.GatewayMAC = getVal(arp(socketeerOptions.InterfaceName, link, r.Gw)).(net.HardwareAddr)
-						break
-					}
+				if socketeerOptions.GatewayMAC, err = getGatewayV4(socketeerOptions.InterfaceName); err != nil {
+					panic(err)
 				}
 			} else {
 				socketeerOptions.GatewayMAC, err = net.ParseMAC(gatewayMAC)
