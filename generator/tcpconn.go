@@ -98,14 +98,16 @@ func (g *GeneratorTcpConn) Run() {
 	ipLayer := &layers.IPv4{
 		Version:  4, // IPv4
 		TTL:      64,
-		Protocol: 6,                            // TCP
-		SrcIP:    net.IPv4(0, 0, 0, 0),         // TODO: Set to one of the spoof IPs.
-		DstIP:    net.IPv4(255, 255, 255, 255), // TODO: Set to the target IP from options
+		Protocol: 6,                          // TCP
+		SrcIP:    net.IPv4(192, 168, 1, 143), // TODO: Set to one of the spoof IPs.
+		DstIP:    net.IPv4(192, 168, 1, 125), // TODO: Set to the target IP from options
 	}
 
 	tcpLayer := &layers.TCP{
-		SrcPort: layers.TCPPort(0), // TODO: Generate a randomized port list and set this later in the loop
-		DstPort: layers.TCPPort(0), // TODO: Set to one of the target port IPs.
+		SrcPort: layers.TCPPort(8000), // TODO: Generate a randomized port list and set this later in the loop
+		DstPort: layers.TCPPort(22),   // TODO: Set to one of the target port IPs.
+		SYN:     true,
+		ACK:     true,
 	}
 
 	//i := 0 // Increment later
@@ -121,10 +123,9 @@ func (g *GeneratorTcpConn) Run() {
 	var elapsed float64
 	var rps int
 
-	g.addLog("Finished generating MACs and preparing packet headers.")
+	g.addLog("Finished preparing packet headers.")
 
 	for g.options.MaxLifetime == 0 || int(elapsed) <= g.options.MaxLifetime {
-
 		select {
 		case _, _ = <-g.finishChannel:
 			close(g.doneChannel)
@@ -140,13 +141,15 @@ func (g *GeneratorTcpConn) Run() {
 		default:
 		}
 
-		t = time.Now()
-		elapsed = t.Sub(start).Seconds()
-		rps = int(float64(sent) / elapsed)
+		if mRps > 0 {
+			t = time.Now()
+			elapsed = t.Sub(start).Seconds()
+			rps = int(float64(sent) / elapsed)
 
-		if rps >= mRps {
-			runtime.Gosched()
-			continue
+			if rps >= mRps {
+				runtime.Gosched()
+				continue
+			}
 		}
 
 		tcpLayer.SetNetworkLayerForChecksum(ipLayer)

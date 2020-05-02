@@ -17,7 +17,7 @@ func prepareCmd(cmd *cobra.Command) *cobra.Command {
 
 	cmd.Flags().Bool("decline", false, "Decline offers.")
 
-	cmd.Flags().Int("rps", 0, "Max number of packets per second. 0 == unlimited.")
+	cmd.Flags().Int("rps", 1, "Max number of packets per second. 0 == unlimited.")
 	cmd.Flags().Int("maxlife", 0, "How long to run. 0 == forever")
 	cmd.Flags().Int("mac-count", 1, "Total number of MAC addresses to use. If the 'mac' option is used, mac-count - number of mac will be used to pad with additional pre-generated MAC addresses.")
 	cmd.Flags().StringArray("mac", []string{}, "Optionally specified MAC address to be used for requesting leases. Can be used multiple times.")

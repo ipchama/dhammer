@@ -72,7 +72,7 @@ func (s *StatsTcpConn) Init() error {
 	s.counters[5].Name = "SynAckReceived"
 	s.counters[6].Name = "AckReceived"
 	s.counters[7].Name = "FinReceived"
-	s.counters[8].Name = "ResetSent"
+	s.counters[8].Name = "RstReceived"
 
 	return nil
 }

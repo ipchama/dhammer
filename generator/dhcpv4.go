@@ -204,13 +204,15 @@ func (g *GeneratorV4) Run() {
 		default:
 		}
 
-		t = time.Now()
-		elapsed = t.Sub(start).Seconds()
-		rps = int(float64(sent) / elapsed)
+		if mRps > 0 {
+			t = time.Now()
+			elapsed = t.Sub(start).Seconds()
+			rps = int(float64(sent) / elapsed)
 
-		if rps >= mRps {
-			runtime.Gosched()
-			continue
+			if rps >= mRps {
+				runtime.Gosched()
+				continue
+			}
 		}
 
 		outDhcpLayer.Xid = nRand.Uint32()

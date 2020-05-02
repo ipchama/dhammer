@@ -15,7 +15,7 @@ func prepareTcpCmd(cmd *cobra.Command) *cobra.Command {
 
 	cmd.Flags().Int("handshake", 2, "Handshake stages: 1 == syn only; 2 == full handshake")
 
-	cmd.Flags().Int("rps", 0, "Max number of packets per second. 0 == unlimited.")
+	cmd.Flags().Int("rps", 1, "Max number of packets per second. 0 == unlimited.")
 	cmd.Flags().Int("maxlife", 0, "How long to run. 0 == forever")
 
 	cmd.Flags().Int("stats-rate", 5, "How frequently to update stat calculations. (seconds).")
