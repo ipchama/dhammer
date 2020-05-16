@@ -9,20 +9,29 @@ import (
 )
 
 func prepareTcpCmd(cmd *cobra.Command) *cobra.Command {
-	cmd.Flags().Bool("syn", true, "Send only SYN. (same as handhake=1)")
-	cmd.Flags().Bool("syn-ack", true, "Send SYN-ACK")
-	cmd.Flags().Bool("ack", true, "Send only acks")
+	cmd.Flags().Int("handshake", 2, "Handhake steps attempted.  0 == Nothing, not even a SYN;  1 == SYN; 2 == full handhake.")
+	cmd.Flags().Bool("use-push", true, "Use PSH for data with established connections.")
+	cmd.Flags().Bool("use-urgent", true, "Use URG for data with established connections.")
+	cmd.Flags().Bool("use-fin", true, "Use FIN for data with established connections. If using -generate-data-* options, this will be a response to the first ACK received.")
+	cmd.Flags().Bool("use-reset", true, "Use RST for data with established connections. If using -generate-data-* options, this will be a response to the first ACK received.")
+	cmd.Flags().Int("data-initial-delay", 0, "Delay in MICROseconds before first data packet is sent.  This might affect rps.")
+	cmd.Flags().Int("generate-data-burst", 1, "Once a connection is established, generate data and send <num> packets between ACKs.")
 
-	cmd.Flags().Int("handshake", 2, "Handshake stages: 1 == syn only; 2 == full handshake")
+	cmd.Flags().Bool("unsolicited-syn-ack", true, "Send SYN-ACKs without an established connection.")
+	cmd.Flags().Bool("unsolicited-ack", true, "Send ACKs without an established connection.")
+	cmd.Flags().Bool("unsolicited-reset", false, "Send RSTs without an established connection.")
+	cmd.Flags().Bool("unsolicited-fin", false, "Send FINs without an established connection.")
+	cmd.Flags().Bool("unsolicited-urgent", false, "Send URGs without an established connection.")
+	cmd.Flags().Bool("unsolicited-pushes", false, "Send PSHs without an established connection.")
 
-	cmd.Flags().Int("rps", 1, "Max number of packets per second. 0 == unlimited.")
+	cmd.Flags().Int("rps", 1, "Max number of initial packets to generate per second. 0 == unlimited.")
 	cmd.Flags().Int("maxlife", 0, "How long to run. 0 == forever")
 
 	cmd.Flags().Int("stats-rate", 5, "How frequently to update stat calculations. (seconds).")
 
-	cmd.Flags().String("spoof-sources-file", "", "List of source IPs.  This will only work for with SYN-only.")
+	cmd.Flags().String("spoof-sources-file", "", "List of source IPs.  This will only work for with handshake=1 and unsolicited-* options.")
 
-	cmd.Flags().String("target-server-ip", "127.0.0.1", "Target to load test.")
+	cmd.Flags().String("target-server-ip", "127.0.0.1", "Target to load test.") // Make this a list
 	cmd.Flags().Int("target-port-range-start", 80, "Start of port range to test.")
 	cmd.Flags().Int("target-port-range-end", 80, "End of port range to test.")
 
@@ -40,7 +49,7 @@ func init() {
 	rootCmd.AddCommand(prepareTcpCmd(&cobra.Command{
 		Use:   "tcpconn",
 		Short: "Run a tcp-based load test.",
-		Long:  `Run a tcp-based load test.`,
+		Long:  `unsolicited options can be stacked with 'handshake', which will cause initial packets to be randomly selected.`,
 		Run: func(cmd *cobra.Command, args []string) {
 
 			options := &config.TcpConnOptions{}

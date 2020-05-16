@@ -14,6 +14,8 @@ const (
 	TcpAckSentStat
 	TcpFinSentStat
 	TcpRstSentStat
+	TcpPshSentStat
+	TcpUrgSentStat
 
 	TcpSynAckReceivedStat
 	TcpAckReceivedStat
@@ -69,6 +71,8 @@ func (s *StatsTcpConn) Init() error {
 	s.counters[2].Name = "AckSent"
 	s.counters[3].Name = "FinSent"
 	s.counters[4].Name = "RstSent"
+	s.counters[4].Name = "PshSent"
+	s.counters[4].Name = "UrgSent"
 	s.counters[5].Name = "SynAckReceived"
 	s.counters[6].Name = "AckReceived"
 	s.counters[7].Name = "FinReceived"
