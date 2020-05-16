@@ -16,6 +16,8 @@ func prepareTcpCmd(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Bool("use-reset", true, "Use RST for data with established connections. If using -generate-data-* options, this will be a response to the first ACK received.")
 	cmd.Flags().Int("data-initial-delay", 0, "Delay in MICROseconds before first data packet is sent.  This might affect rps.")
 	cmd.Flags().Int("generate-data-burst", 1, "Once a connection is established, generate data and send <num> packets between ACKs.")
+	cmd.Flags().Bool("random-sequence-numbers", false, "Randomize sequence numbers for data packets.")
+	cmd.Flags().Bool("reverse-sequence-numbers", false, "Run the sequence backward, trying to force excessive reordering.")
 
 	cmd.Flags().Bool("unsolicited-syn-ack", true, "Send SYN-ACKs without an established connection.")
 	cmd.Flags().Bool("unsolicited-ack", true, "Send ACKs without an established connection.")
