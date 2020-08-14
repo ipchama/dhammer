@@ -5,3 +5,4 @@
 *.pyc
 __pycache__
 .pydevproject
+go.sum
