@@ -8,6 +8,8 @@ import (
 	"net"
 )
 
+// Wondering if we can use timing with spoofing and a little luck to created spoofed connections.
+
 func prepareTcpCmd(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Int("handshake", 2, "Handhake steps attempted.  0 == Nothing, not even a SYN;  1 == SYN; 2 == full handhake.")
 	cmd.Flags().Bool("use-push", true, "Use PSH for data with established connections.")
