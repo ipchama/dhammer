@@ -99,10 +99,12 @@ func arp(n string, l netlink.Link, i net.IP) (net.HardwareAddr, error) {
 	}
 	buf := gopacket.NewSerializeBuffer()
 
-	gopacket.SerializeLayers(buf, goPacketSerializeOpts,
+	if err := gopacket.SerializeLayers(buf, goPacketSerializeOpts,
 		ethernetLayer,
 		arpLayer,
-	)
+	); err != nil {
+		panic(err)
+	}
 
 	s.AddPayload(buf.Bytes())
 
@@ -131,7 +133,7 @@ func arp(n string, l netlink.Link, i net.IP) (net.HardwareAddr, error) {
 	wg.Wait()
 
 	if !ok {
-		return nil, errors.New("Failed to get ARP response for default gateway probe during init.")
+		return nil, errors.New("failed to get ARP response for default gateway probe during init")
 	}
 
 	return gwMac, nil
