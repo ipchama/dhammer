@@ -28,7 +28,7 @@ func prepareCmd(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Int("rps", 0, "Max number of packets per second. 0 == unlimited.")
 	cmd.Flags().Int("maxlife", 0, "How long to run. 0 == forever")
 	cmd.Flags().Int("mac-count", 1, "Total number of MAC addresses to use. If the 'mac' option is used, mac-count - number of mac will be used to pad with additional pre-generated MAC addresses.")
-	cmd.Flags().Int64("mac-seed", 0, "Seed to use for generating pre-generated MAC addresses.  This is mainly for when you need a random but consistent list of MACs.")
+	cmd.Flags().Int64("mac-seed", 0, "Optional seed to use for generating MAC addresses.  This is mainly for when you want the same 'random' MACs every time.")
 	cmd.Flags().StringArray("mac", []string{}, "Optionally specified MAC address to be used for requesting leases. Can be used multiple times.")
 
 	cmd.Flags().Int("stats-rate", 5, "How frequently to update stat calculations. (seconds).")
