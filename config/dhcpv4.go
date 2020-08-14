@@ -29,6 +29,7 @@ type DhcpV4Options struct {
 
 	MacCount      int
 	SpecifiedMacs []string
+	MacSeed       int64
 
 	StatsRate int
 }
