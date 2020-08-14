@@ -158,7 +158,7 @@ func arp(n string, l netlink.Link, i net.IP) (net.HardwareAddr, error) {
 	wg.Wait()
 
 	if !ok {
-		return nil, errors.New("Failed to get ARP response for default gateway probe during init.")
+		return nil, errors.New("failed to get ARP response for default gateway probe during init")
 	}
 
 	return gwMac, nil

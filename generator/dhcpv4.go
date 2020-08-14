@@ -63,7 +63,7 @@ func (g *GeneratorV4) DeInit() error {
 
 func (g *GeneratorV4) Stop() error {
 	g.finishChannel <- struct{}{}
-	_, _ = <-g.doneChannel
+	<-g.doneChannel
 	return nil
 }
 
@@ -177,7 +177,7 @@ func (g *GeneratorV4) Run() {
 	sent := 0
 
 	start := time.Now()
-	time.Sleep(1)
+	time.Sleep(1 * time.Nanosecond)
 
 	mRps := g.options.RequestsPerSecond
 
@@ -185,22 +185,23 @@ func (g *GeneratorV4) Run() {
 	var elapsed float64
 	var rps int
 
+	var err error
 	g.addLog("Finished generating MACs and preparing packet headers.")
 
 	for g.options.MaxLifetime == 0 || int(elapsed) <= g.options.MaxLifetime {
 
 		select {
-		case _, _ = <-g.finishChannel:
+		case <-g.finishChannel:
 			close(g.doneChannel)
 			return
 		default:
 		}
 
 		select {
-		case mRps, _ = <-g.rpsChannel:
+		case mRps = <-g.rpsChannel:
 			sent = 0
 			start = time.Now()
-			time.Sleep(1)
+			time.Sleep(1 * time.Nanosecond) // Being explict...
 		default:
 		}
 
@@ -218,15 +219,20 @@ func (g *GeneratorV4) Run() {
 
 		//ethernetLayer.SrcMAC = macs[i]
 
+		// I refuse to even assign to _ ...
+		// skipcq
 		udpLayer.SetNetworkLayerForChecksum(ipLayer)
 
 		buf := gopacket.NewSerializeBuffer()
-		gopacket.SerializeLayers(buf, opts,
+		if err = gopacket.SerializeLayers(buf, opts,
 			ethernetLayer,
 			ipLayer,
 			udpLayer,
 			outDhcpLayer,
-		)
+		); err != nil {
+			g.addError(err)
+			continue
+		}
 
 		if g.sendPayload(buf.Bytes()) {
 			g.addStat(stats.DiscoverSentStat)
