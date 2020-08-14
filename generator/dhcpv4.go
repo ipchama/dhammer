@@ -242,7 +242,14 @@ func (g *GeneratorV4) Run() {
 }
 
 func (g *GeneratorV4) generateMacList() []net.HardwareAddr {
-	nS := rand.NewSource(time.Now().Unix())
+
+	seed := g.options.MacSeed
+
+	if seed == 0 {
+		seed = time.Now().Unix()
+	}
+
+	nS := rand.NewSource(seed)
 	nRand := rand.New(nS)
 
 	macs := make([]net.HardwareAddr, 0)
