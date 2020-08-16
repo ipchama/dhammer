@@ -5,12 +5,21 @@ import (
 )
 
 type TcpConnOptions struct {
-	Handshake int
-	Syn       bool
-	SynAck    bool
-	Ack       bool
+	Handshake                   int
+	RequestCongestionManagement bool
+	UnsolicitedSynAck           bool
+	UnsolicitedAck              bool
+	UnsolicitedReset            bool
+	UnsolicitedFin              bool
+	UnsolicitedUrgent           bool
+	UnsolicitedPush             bool
 
-	IPVersion int
+	UsePush   bool
+	UseUrgent bool
+	UseFin    bool
+	UseReset  bool
+
+	Ipv6 bool
 
 	TargetServerIP       net.IP
 	TargetPortRangeStart int

@@ -11,7 +11,10 @@ import (
 // Wondering if we can use timing with spoofing and a little luck to created spoofed connections.
 
 func prepareTcpCmd(cmd *cobra.Command) *cobra.Command {
-	cmd.Flags().Int("handshake", 2, "Handhake steps attempted.  0 == Nothing, not even a SYN;  1 == SYN; 2 == full handhake.")
+	cmd.Flags().Bool("ipv6", false, "Use IPv6")
+
+	cmd.Flags().Int("handshake", 2, "Handshake steps attempted.  0 == Nothing, not even a SYN;  1 == SYN; 2 == full handhake.")
+	cmd.Flags().Bool("request-congestion-mgmt", false, "Pretend we are capable of managing situations of congestion and see if the otherside is as well.")
 	cmd.Flags().Bool("use-push", true, "Use PSH for data with established connections.")
 	cmd.Flags().Bool("use-urgent", true, "Use URG for data with established connections.")
 	cmd.Flags().Bool("use-fin", true, "Use FIN for data with established connections. If using -generate-data-* options, this will be a response to the first ACK received.")
@@ -26,7 +29,7 @@ func prepareTcpCmd(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Bool("unsolicited-reset", false, "Send RSTs without an established connection.")
 	cmd.Flags().Bool("unsolicited-fin", false, "Send FINs without an established connection.")
 	cmd.Flags().Bool("unsolicited-urgent", false, "Send URGs without an established connection.")
-	cmd.Flags().Bool("unsolicited-pushes", false, "Send PSHs without an established connection.")
+	cmd.Flags().Bool("unsolicited-push", false, "Send PSHs without an established connection.")
 
 	cmd.Flags().Int("rps", 1, "Max number of initial packets to generate per second. 0 == unlimited.")
 	cmd.Flags().Int("maxlife", 0, "How long to run. 0 == forever")
@@ -37,7 +40,7 @@ func prepareTcpCmd(cmd *cobra.Command) *cobra.Command {
 
 	cmd.Flags().String("target-server-ip", "127.0.0.1", "Target to load test.") // Make this a list
 	cmd.Flags().Int("target-port-range-start", 80, "Start of port range to test.")
-	cmd.Flags().Int("target-port-range-end", 80, "End of port range to test.")
+	cmd.Flags().Int("target-port-range-end", 0, "End of port range to test.  0 == only test the start port.")
 
 	cmd.Flags().String("interface", "eth0", "Interface name for listening and sending.")
 	cmd.Flags().String("gateway-mac", "auto", "MAC of the gateway.")
@@ -63,9 +66,19 @@ func init() {
 
 			options.Handshake = getVal(cmd.Flags().GetInt("handshake")).(int)
 
-			options.Syn = getVal(cmd.Flags().GetBool("syn")).(bool)
-			options.SynAck = getVal(cmd.Flags().GetBool("syn-ack")).(bool)
-			options.Ack = getVal(cmd.Flags().GetBool("ack")).(bool)
+			options.RequestCongestionManagement = getVal(cmd.Flags().GetBool("request-congestion-mgmt")).(bool)
+			options.UsePush = getVal(cmd.Flags().GetBool("use-push")).(bool)
+			options.UseUrgent = getVal(cmd.Flags().GetBool("use-urgent")).(bool)
+			options.UseFin = getVal(cmd.Flags().GetBool("use-fin")).(bool)
+			options.UseReset = getVal(cmd.Flags().GetBool("use-reset")).(bool)
+
+			// If Handshake == 0, then any of the selected unsolicited options below will be randomy chosen per generated packet.
+			options.UnsolicitedSynAck = getVal(cmd.Flags().GetBool("unsolicited-syn-ack")).(bool)
+			options.UnsolicitedAck = getVal(cmd.Flags().GetBool("unsolicited-ack")).(bool)
+			options.UnsolicitedReset = getVal(cmd.Flags().GetBool("unsolicited-reset")).(bool)
+			options.UnsolicitedFin = getVal(cmd.Flags().GetBool("unsolicited-fin")).(bool)
+			options.UnsolicitedUrgent = getVal(cmd.Flags().GetBool("unsolicited-urgent")).(bool)
+			options.UnsolicitedPush = getVal(cmd.Flags().GetBool("unsolicited-push")).(bool)
 
 			options.RequestsPerSecond = getVal(cmd.Flags().GetInt("rps")).(int)
 			options.MaxLifetime = getVal(cmd.Flags().GetInt("maxlife")).(int)
