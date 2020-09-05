@@ -99,7 +99,7 @@ func (g *GeneratorTcpConn) Run() {
 		Version:  4, // IPv4
 		TTL:      64,
 		Protocol: 6,                          // TCP
-		SrcIP:    net.IPv4(192, 168, 1, 143), // TODO: Set to one of the spoof IPs.
+		SrcIP:    net.IPv4(192, 168, 1, 135), // TODO: Set to one of the spoof IPs.
 		DstIP:    g.options.TargetServerIP,
 	}
 

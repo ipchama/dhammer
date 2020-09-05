@@ -3,11 +3,16 @@ package stats
 import (
 	"encoding/json"
 	//"fmt"
+	
 	"github.com/ipchama/dhammer/config"
 	"sync"
 	"time"
 )
 
+// These don't really make a lot of sense here.
+// This should probably be reduced to simply packet sent vs received, or maybe connections attempted vs achieved
+// and maybe also data packets sent vs ack and data volume sent.  I.e., the stats should probably speak more to connection and bandwidth/data-transmission and not 
+// Individual packet properties, particularily because these aren't separate packets: a single packet could have a combination of them.
 const (
 	TcpSynSentStat = iota
 	TcpSynAckSentStat
