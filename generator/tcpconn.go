@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -9,7 +10,9 @@ import (
 	"github.com/ipchama/dhammer/stats"
 	"math/rand"
 	"net"
+	"os"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -24,6 +27,8 @@ type GeneratorTcpConn struct {
 	finishChannel chan struct{}
 	doneChannel   chan struct{}
 	rpsChannel    chan int
+
+	spoofIps []net.IP
 }
 
 func init() {
@@ -51,7 +56,20 @@ func NewTcpConn(gip GeneratorInitParams) Generator {
 }
 
 func (g *GeneratorTcpConn) Init() error {
-	return nil
+
+	var err error
+
+	g.spoofIps, err = loadIpsFromFile(g.options.SpoofSourcesFile)
+
+	if err != nil {
+		return err
+	}
+
+	if len(g.spoofIps) == 0 {
+		err = fmt.Errorf("empty IP list passed to tcpconn generator after reading %s", g.options.SpoofSourcesFile)
+	}
+
+	return err
 }
 
 func (g *GeneratorTcpConn) DeInit() error {
@@ -98,8 +116,7 @@ func (g *GeneratorTcpConn) Run() {
 	ipLayer := &layers.IPv4{
 		Version:  4, // IPv4
 		TTL:      64,
-		Protocol: 6,                          // TCP
-		SrcIP:    net.IPv4(192, 168, 1, 135), // TODO: Set to one of the spoof IPs.
+		Protocol: 6, // TCP
 		DstIP:    g.options.TargetServerIP,
 	}
 
@@ -107,6 +124,7 @@ func (g *GeneratorTcpConn) Run() {
 
 	iSport := 0 // Increment later
 	iDport := 0 // Increment later
+	sIp := 0
 
 	sent := 0
 
@@ -152,10 +170,11 @@ func (g *GeneratorTcpConn) Run() {
 			}
 		}
 
-		tcpLayer.SetNetworkLayerForChecksum(ipLayer) // Do I need to set this on every interation?  I think this can be set once outside the loop.
+		tcpLayer.SetNetworkLayerForChecksum(ipLayer) // Do I need to set this on every iteration?  I think this can be set once outside the loop.
 
 		tcpLayer.SrcPort = layers.TCPPort(sourcePorts[iSport])
 		tcpLayer.DstPort = layers.TCPPort(targetPorts[iDport])
+		ipLayer.SrcIP = g.spoofIps[sIp]
 
 		if g.options.Handshake > 0 {
 			tcpLayer.SYN = true
@@ -192,36 +211,59 @@ func (g *GeneratorTcpConn) Run() {
 
 		sent++
 
-		if iSport++; iSport > len(sourcePorts)-1 { // TODO: Rotate through target port, sourc port, and spoof IP.  Set up a compare-and-swap to randomize the lists every few seconds.
+		if iSport++; iSport >= len(sourcePorts) { // TODO: Rotate through target port, sourc port, and spoof IP.  Set up a compare-and-swap to randomize the lists every few seconds.
 			iSport = 0
 		}
 
-		if iDport++; iDport > len(targetPorts)-1 { // TODO: Rotate through target port, sourc port, and spoof IP.  Set up a compare-and-swap to randomize the lists every few seconds.
+		if iDport++; iDport >= len(targetPorts) { // TODO: Rotate through target port, sourc port, and spoof IP.  Set up a compare-and-swap to randomize the lists every few seconds.
 			iDport = 0
+		}
+
+		if sIp++; sIp >= len(g.spoofIps) {
+			sIp = 0
 		}
 	}
 
 }
 
-func (g *GeneratorTcpConn) loadSpoofList() []net.IP {
-	return nil
+// Move this junk in the config package and just import or something...
+func loadIpsFromFile(f string) ([]net.IP, error) {
+	list := make([]net.IP, 1, 1)
+
+	file, err := os.Open(f)
+
+	if err != nil {
+		return nil, err
+	}
+
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		ip := net.ParseIP(strings.TrimSpace(scanner.Text()))
+
+		if ip != nil {
+			list = append(list, ip)
+		}
+	}
+
+	return list, file.Close()
 }
 
-func generatePortList(s, e int) []int {
+func generatePortList(start, end int) []int {
 
-	if e == 0 {
+	if end == 0 {
 		p := make([]int, 1, 1)
-		p[0] = s
+		p[0] = start
 		return p
 	}
 
 	nS := rand.NewSource(time.Now().Unix())
 	nRand := rand.New(nS)
 
-	portList := make([]int, e-s, e-s)
+	portList := make([]int, end-start, end-start)
 
-	for i := 0; i < e-s; i++ {
-		portList[i] = nRand.Intn(e-s) + s
+	for i := 0; i < end-start; i++ {
+		portList[i] = nRand.Intn(end-start) + start
 	}
 
 	return portList
