@@ -3,36 +3,31 @@ package stats
 import (
 	"encoding/json"
 	//"fmt"
-	
+
 	"github.com/ipchama/dhammer/config"
 	"sync"
 	"time"
 )
 
-// These don't really make a lot of sense here.
-// This should probably be reduced to simply packet sent vs received, or maybe connections attempted vs achieved
-// and maybe also data packets sent vs ack and data volume sent.  I.e., the stats should probably speak more to connection and bandwidth/data-transmission and not 
+// The stats should probably speak more to connection and bandwidth/data-transmission and not
 // Individual packet properties, particularily because these aren't separate packets: a single packet could have a combination of them.
 const (
-	TcpSynSentStat = iota
-	TcpSynAckSentStat
-	TcpAckSentStat
-	TcpFinSentStat
-	TcpRstSentStat
-	TcpPshSentStat
-	TcpUrgSentStat
+	TcpSentStat = iota
+	TcpRecvStat
 
-	TcpSynAckReceivedStat
-	TcpAckReceivedStat
-	TcpFinReceivedStat
-	TcpRstReceivedStat
+	TcpHandshakeSynSentStat
+	TcpHandshakeSynAckRecvStat
+	TcpHandshakeAckSentStat
+
+	TcpConnAttemptStat
+	TcpConnSuccessStat
 )
 
 type StatsTcpConn struct {
 	options *config.TcpConnOptions
 
 	countersMux *sync.RWMutex
-	counters    [9]Stat
+	counters    [7]Stat
 
 	addLog   func(string) bool
 	addError func(error) bool
@@ -71,17 +66,13 @@ func (s *StatsTcpConn) AddStat(sv StatValue) bool {
 
 func (s *StatsTcpConn) Init() error {
 
-	s.counters[0].Name = "SynSent"
-	s.counters[1].Name = "SynAckSent"
-	s.counters[2].Name = "AckSent"
-	s.counters[3].Name = "FinSent"
-	s.counters[4].Name = "RstSent"
-	s.counters[4].Name = "PshSent"
-	s.counters[4].Name = "UrgSent"
-	s.counters[5].Name = "SynAckReceived"
-	s.counters[6].Name = "AckReceived"
-	s.counters[7].Name = "FinReceived"
-	s.counters[8].Name = "RstReceived"
+	s.counters[0].Name = "PacketSent"
+	s.counters[1].Name = "PacketReceived"
+	s.counters[2].Name = "HandshakeSynSent"
+	s.counters[3].Name = "HandshakeSynAckReceived"
+	s.counters[4].Name = "HandshakeAckSent"
+	s.counters[5].Name = "ConnectionAttempted"
+	s.counters[6].Name = "ConnectionSucceeded"
 
 	return nil
 }

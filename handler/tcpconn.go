@@ -7,24 +7,13 @@ import (
 	"github.com/ipchama/dhammer/message"
 	"github.com/ipchama/dhammer/socketeer"
 	"github.com/ipchama/dhammer/stats"
-	"github.com/vishvananda/netlink"
 	"net"
-	"time"
 )
-
-type LeaseTcpConn struct {
-	Packet   gopacket.Packet
-	LinkAddr *netlink.Addr
-	Acquired time.Time
-	HwAddr   net.HardwareAddr
-}
 
 type HandlerTcpConn struct {
 	options      *config.TcpConnOptions
 	socketeer    *socketeer.RawSocketeer
 	iface        *net.Interface
-	link         netlink.Link
-	acquiredIPs  map[string]*LeaseTcpConn
 	addLog       func(string) bool
 	addError     func(error) bool
 	sendPayload  func([]byte) bool
@@ -45,7 +34,6 @@ func NewTcpConn(hip HandlerInitParams) Handler {
 		options:      hip.options.(*config.TcpConnOptions),
 		socketeer:    hip.socketeer,
 		iface:        hip.socketeer.IfInfo,
-		acquiredIPs:  make(map[string]*LeaseTcpConn),
 		addLog:       hip.logFunc,
 		addError:     hip.errFunc,
 		sendPayload:  hip.socketeer.AddPayload,
@@ -71,11 +59,7 @@ func (h *HandlerTcpConn) ReceiveMessage(msg message.Message) bool {
 
 func (h *HandlerTcpConn) Init() error {
 
-	var err error = nil
-
-	h.link, err = netlink.LinkByName("lo")
-
-	return err
+	return nil
 }
 
 func (h *HandlerTcpConn) DeInit() error {
@@ -93,6 +77,7 @@ func (h *HandlerTcpConn) Run() {
 
 	var msg message.Message
 	var tcpReply *layers.TCP
+	var ipReply *layers.IPv4
 
 	//socketeerOptions := h.socketeer.Options()
 
@@ -106,14 +91,19 @@ func (h *HandlerTcpConn) Run() {
 	ipLayer := &layers.IPv4{
 		Version:  4, // IPv4
 		TTL:      64,
-		Protocol: 6, // UDP
+		Protocol: 6, // TCP
 		SrcIP:    net.IPv4(0, 0, 0, 0),
 		DstIP:    net.IPv4(255, 255, 255, 255),
 	}
 
-	tcpLayer := &layers.TCP{
-		SrcPort: layers.TCPPort(0), // TODO: Generate a randomized port list and set this later in the loop
-		DstPort: layers.TCPPort(0), // TODO: Set to one of the target port IPs.
+	tcpLayer := &layers.TCP{}
+
+	if h.options.Handshake == 2 { // Full-handshake
+		tcpLayer.URG = h.options.UseUrgent
+		tcpLayer.PSH = h.options.UsePush
+
+		tcpLayer.ECE = h.options.RequestCongestionManagement
+		tcpLayer.CWR = h.options.RequestCongestionManagement
 	}
 
 	goPacketSerializeOpts := gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}
@@ -126,24 +116,31 @@ func (h *HandlerTcpConn) Run() {
 
 		tcpReply = msg.Packet.Layer(layers.LayerTypeTCP).(*layers.TCP)
 
-		var replyOptions [16]layers.TCPOption
+		if tcpReply.SYN && tcpReply.ACK { // A new connection is starting
 
-		for _, option := range tcpReply.Options { // Assuming that we'll expand on usage of options in the reply later and just doing this now.
-			replyOptions[option.OptionType] = option
-		}
+			h.addStat(stats.TcpHandshakeSynAckRecvStat)
+			h.addStat(stats.TcpRecvStat)
 
-		//h.addLog(fmt.Sprintf("[REPLY] %v %v %v %v %v", dhcpReply.Options[0].String(), dhcpReply.YourClientIP.String(), string(dhcpReply.ServerName), dhcpReply.ClientIP.String(), dhcpReply.ClientHWAddr))
-		// TODO: Switch on the bools here https://github.com/google/gopacket/blob/1d829e51f0c85294eeedb06477a6d369fb5be0ea/layers/tcp.go#L26
+			if h.options.Handshake == 2 { // We only care about full handshake.  If == 0 then we are just spewing garbage. If == 1 then we're making half open connections.
 
-		if tcpReply.FIN {
+				ipReply = msg.Packet.Layer(layers.LayerTypeIPv4).(*layers.IPv4)
 
-			h.addStat(stats.OfferReceivedStat)
-			// TODO switch on Handshake option
-			if h.options.Handshake == 1 {
+				// Need to start tracking connections here.  Probably a good idea to just go with with full 4-tuple tracking from the start.
 
 				buf := gopacket.NewSerializeBuffer()
 
+				ipLayer.SrcIP = ipReply.DstIP
+				ipLayer.DstIP = ipReply.SrcIP
+
 				tcpLayer.SetNetworkLayerForChecksum(ipLayer)
+
+				tcpLayer.ACK = true
+
+				tcpLayer.DstPort = tcpReply.SrcPort
+				tcpLayer.SrcPort = tcpReply.DstPort
+				tcpLayer.Seq = tcpReply.Seq + 1
+				tcpLayer.Window = tcpReply.Window
+				tcpLayer.Options = tcpReply.Options
 
 				gopacket.SerializeLayers(buf, goPacketSerializeOpts,
 					ethernetLayer,
@@ -153,8 +150,9 @@ func (h *HandlerTcpConn) Run() {
 				)
 
 				if h.sendPayload(buf.Bytes()) {
-					// The stat added needs to dependon on the HANDSHAKE/COMM step used.
-					h.addStat(stats.DeclineSentStat)
+					h.addStat(stats.TcpSentStat)
+					h.addStat(stats.TcpHandshakeAckSentStat)
+					h.addStat(stats.TcpConnSuccessStat)
 				}
 			}
 		}

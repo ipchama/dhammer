@@ -97,7 +97,7 @@ func (g *GeneratorTcpConn) Update(details interface{}) error {
 func (g *GeneratorTcpConn) Run() {
 
 	targetPorts := generatePortList(g.options.TargetPortRangeStart, g.options.TargetPortRangeEnd)
-	sourcePorts := generatePortList(5000, 60000)
+	sourcePorts := generatePortList(10000, 60000)
 
 	//nS := rand.NewSource(time.Now().Unix())
 	//nRand := rand.New(nS)
@@ -121,6 +121,16 @@ func (g *GeneratorTcpConn) Run() {
 	}
 
 	tcpLayer := &layers.TCP{}
+
+	if g.options.Handshake > 0 {
+
+		tcpLayer.SYN = true
+		tcpLayer.URG = g.options.UseUrgent
+		tcpLayer.PSH = g.options.UsePush
+
+		tcpLayer.ECE = g.options.RequestCongestionManagement
+		tcpLayer.CWR = g.options.RequestCongestionManagement
+	}
 
 	iSport := 0 // Increment later
 	iDport := 0 // Increment later
@@ -176,13 +186,7 @@ func (g *GeneratorTcpConn) Run() {
 		tcpLayer.DstPort = layers.TCPPort(targetPorts[iDport])
 		ipLayer.SrcIP = g.spoofIps[sIp]
 
-		if g.options.Handshake > 0 {
-			tcpLayer.SYN = true
-			if g.options.RequestCongestionManagement {
-				tcpLayer.ECE = true
-				tcpLayer.CWR = true
-			}
-		} else {
+		if g.options.Handshake == 0 {
 			// Pregenerating a random list of the possible combinations and then doing a look up is almost an order of magnitude faster,
 			// but it's 12 ns vs 1 ns, and both are so fast that they get lost in the time it takes to push packets out.
 			// Even though there are only 63 possible combinations of flags (since we exclude the 0/empty case), the order in which they'll emerge
@@ -204,18 +208,19 @@ func (g *GeneratorTcpConn) Run() {
 			tcpLayer,
 		)
 
-		// TODO: This and the actual payload will depend on options chosen
 		if g.sendPayload(buf.Bytes()) {
-			g.addStat(stats.TcpSynSentStat)
+			g.addStat(stats.TcpSentStat)
+			g.addStat(stats.TcpHandshakeSynSentStat)
+			g.addStat(stats.TcpConnAttemptStat)
 		}
 
 		sent++
 
-		if iSport++; iSport >= len(sourcePorts) { // TODO: Rotate through target port, sourc port, and spoof IP.  Set up a compare-and-swap to randomize the lists every few seconds.
+		if iSport++; iSport >= len(sourcePorts) { // TODO: Set up a compare-and-swap to randomize the lists every few seconds.
 			iSport = 0
 		}
 
-		if iDport++; iDport >= len(targetPorts) { // TODO: Rotate through target port, sourc port, and spoof IP.  Set up a compare-and-swap to randomize the lists every few seconds.
+		if iDport++; iDport >= len(targetPorts) { // TODO: Set up a compare-and-swap to randomize the lists every few seconds.
 			iDport = 0
 		}
 
