@@ -55,6 +55,8 @@ func NewTcpConn(gip GeneratorInitParams) Generator {
 	return &g
 }
 
+// Init should probably also be where we handle the iptables changes (dropping RST in output) if g.options.AddDropRules is true
+
 func (g *GeneratorTcpConn) Init() error {
 
 	var err error

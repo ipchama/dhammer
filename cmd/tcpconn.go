@@ -13,6 +13,8 @@ import (
 func prepareTcpCmd(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Bool("ipv6", false, "Use IPv6")
 
+	cmd.Flags().Bool("add-rst-drop-rules", true, "NOT IMPLEMENTED YET Automatically add firewall rules to drop outgoing RST packets for target IP and port ranges.")
+
 	cmd.Flags().Int("handshake", 2, "Handshake steps attempted.  0 == Nothing, not even a SYN;  1 == SYN; 2 == full handhake.")
 	cmd.Flags().Bool("request-congestion-mgmt", false, "Pretend we are capable of managing situations of congestion and see if the otherside is as well.")
 	cmd.Flags().Bool("use-push", true, "Use PSH for data with established connections.")
@@ -65,6 +67,8 @@ func init() {
 			var err error
 
 			options.Handshake = getVal(cmd.Flags().GetInt("handshake")).(int)
+
+			options.AddDropRules = getVal(cmd.Flags().GetInt("add-rst-drop-rules")).(bool)
 
 			options.RequestCongestionManagement = getVal(cmd.Flags().GetBool("request-congestion-mgmt")).(bool)
 			options.UsePush = getVal(cmd.Flags().GetBool("use-push")).(bool)

@@ -126,6 +126,7 @@ func (h *HandlerTcpConn) Run() {
 				ipReply = msg.Packet.Layer(layers.LayerTypeIPv4).(*layers.IPv4)
 
 				// Need to start tracking connections here.  Probably a good idea to just go with with full 4-tuple tracking from the start.
+				// Probably also need to start thinking about a separate go-routine to spew data packets for live connections.
 
 				buf := gopacket.NewSerializeBuffer()
 

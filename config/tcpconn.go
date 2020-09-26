@@ -5,6 +5,8 @@ import (
 )
 
 type TcpConnOptions struct {
+	AddDropRules bool
+
 	Handshake                   int
 	RequestCongestionManagement bool
 	UnsolicitedSynAck           bool
