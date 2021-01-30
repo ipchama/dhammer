@@ -63,6 +63,10 @@ func (g *GeneratorTcpConn) Init() error {
 
 	g.spoofIps, err = loadIpsFromFile(g.options.SpoofSourcesFile)
 
+	if os.IsNotExist(err) {
+		err = fmt.Errorf("spoof ip list file not passed or not found: %s", g.options.SpoofSourcesFile)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -201,6 +205,15 @@ func (g *GeneratorTcpConn) Run() {
 			tcpLayer.FIN = g.options.UnsolicitedFin && (unsolicitedPerms&8 == 8)
 			tcpLayer.URG = g.options.UnsolicitedUrgent && (unsolicitedPerms&16 == 16)
 			tcpLayer.PSH = g.options.UnsolicitedPush && (unsolicitedPerms&32 == 32)
+		} else {
+			tcpLayer.Options = []layers.TCPOption{
+				// Consider an MSS option that could be used to tax the remote system by forcing it to send many small chunks.
+				// For example, you request DNSSEC data but have negotiated with an MSS of 10
+				// layers.TCPOption{layers.TCPOptionKindMSS, 2, []byte{4}},
+				layers.TCPOption{layers.TCPOptionKindSACKPermitted, 0, []byte{}},
+				//layers.TCPOption{layers.TCPOptionKindEndList, 0, []byte{}},
+			}
+
 		}
 
 		buf := gopacket.NewSerializeBuffer()

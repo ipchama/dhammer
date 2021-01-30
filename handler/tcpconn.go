@@ -79,10 +79,10 @@ func (h *HandlerTcpConn) Run() {
 	var tcpReply *layers.TCP
 	var ipReply *layers.IPv4
 
-	//socketeerOptions := h.socketeer.Options()
+	socketeerOptions := h.socketeer.Options()
 
 	ethernetLayer := &layers.Ethernet{
-		DstMAC:       layers.EthernetBroadcast,
+		DstMAC:       socketeerOptions.GatewayMAC,
 		SrcMAC:       h.iface.HardwareAddr,
 		EthernetType: layers.EthernetTypeIPv4,
 		Length:       0,
@@ -110,6 +110,12 @@ func (h *HandlerTcpConn) Run() {
 
 	for msg = range h.inputChannel {
 
+		/* if h.options.Ipv6 && msg.Packet.Layer(layers.LayerTypeIPv6) == nil {
+			continue
+		} else */if !h.options.Ipv6 && msg.Packet.Layer(layers.LayerTypeIPv4) == nil {
+			continue
+		}
+
 		if msg.Packet.Layer(layers.LayerTypeTCP) == nil {
 			continue
 		}
@@ -136,12 +142,25 @@ func (h *HandlerTcpConn) Run() {
 				tcpLayer.SetNetworkLayerForChecksum(ipLayer)
 
 				tcpLayer.ACK = true
+				tcpLayer.Ack = tcpReply.Seq + 1
 
 				tcpLayer.DstPort = tcpReply.SrcPort
 				tcpLayer.SrcPort = tcpReply.DstPort
-				tcpLayer.Seq = tcpReply.Seq + 1
-				tcpLayer.Window = tcpReply.Window
-				tcpLayer.Options = tcpReply.Options
+				tcpLayer.Seq = 1
+				tcpLayer.Window = tcpReply.Window // TODO: Actually set this to something valid.
+
+				// If we can statically set this, do so outside the loop, or at least build the parts that we can outside the loop.
+				tcpLayer.Options = []layers.TCPOption{
+					layers.TCPOption{layers.TCPOptionKindSACKPermitted, 0, []byte{}},
+				}
+
+				/*
+					for o := range tcpReply.Options {
+						if o.OptionType == layers.TCPOptionKindSACKPermitted {
+
+						}
+					}
+				*/
 
 				gopacket.SerializeLayers(buf, goPacketSerializeOpts,
 					ethernetLayer,

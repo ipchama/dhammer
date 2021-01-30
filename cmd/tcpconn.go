@@ -19,8 +19,8 @@ func prepareTcpCmd(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Bool("request-congestion-mgmt", false, "Pretend we are capable of managing situations of congestion and see if the otherside is as well.")
 	cmd.Flags().Bool("use-push", true, "Use PSH for data with established connections.")
 	cmd.Flags().Bool("use-urgent", true, "Use URG for data with established connections.")
-	cmd.Flags().Bool("use-fin", true, "Use FIN for data with established connections. If using -generate-data-* options, this will be a response to the first ACK received.")
-	cmd.Flags().Bool("use-reset", true, "Use RST for data with established connections. If using -generate-data-* options, this will be a response to the first ACK received.")
+	cmd.Flags().Bool("use-fin", false, "Use FIN for data with established connections. If using -generate-data-* options, this will be a response to the first ACK received.")
+	cmd.Flags().Bool("use-reset", false, "Use RST for data with established connections. If using -generate-data-* options, this will be a response to the first ACK received.")
 	cmd.Flags().Int("data-initial-delay", 0, "Delay in MICROseconds before first data packet is sent.  This might affect rps.")
 	cmd.Flags().Int("generate-data-burst", 1, "Once a connection is established, generate data and send <num> packets between ACKs.")
 	cmd.Flags().Bool("random-sequence-numbers", false, "Randomize sequence numbers for data packets.")
@@ -68,7 +68,7 @@ func init() {
 
 			options.Handshake = getVal(cmd.Flags().GetInt("handshake")).(int)
 
-			options.AddDropRules = getVal(cmd.Flags().GetInt("add-rst-drop-rules")).(bool)
+			options.AddDropRules = getVal(cmd.Flags().GetBool("add-rst-drop-rules")).(bool)
 
 			options.RequestCongestionManagement = getVal(cmd.Flags().GetBool("request-congestion-mgmt")).(bool)
 			options.UsePush = getVal(cmd.Flags().GetBool("use-push")).(bool)
